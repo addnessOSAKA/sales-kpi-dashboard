@@ -1,0 +1,357 @@
+/**
+ * 営業チームKPIダッシュボード PWA用スタイル
+ * PWA機能をサポートするためのスタイル定義
+ */
+
+/* 接続状態表示 */
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 15px;
+}
+
+.connection-status::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.connection-status.online {
+  background-color: rgba(46, 204, 113, 0.1);
+  color: #27ae60;
+}
+
+.connection-status.online::before {
+  background-color: #27ae60;
+}
+
+.connection-status.offline {
+  background-color: rgba(231, 76, 60, 0.1);
+  color: #e74c3c;
+}
+
+.connection-status.offline::before {
+  background-color: #e74c3c;
+}
+
+/* オフラインインジケーター */
+#offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #e74c3c;
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-size: 14px;
+  z-index: 1000;
+  display: none;
+}
+
+/* 同期インジケーター */
+#sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #f5f7fa;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+#sync-indicator::before {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  background-image: url('../images/sync-icon.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+#sync-indicator.syncing {
+  animation: rotate 1.5s linear infinite;
+}
+
+#sync-indicator.synced {
+  background-color: rgba(46, 204, 113, 0.1);
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* アクションボタン */
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 15px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.action-btn:hover {
+  background-color: #2980b9;
+}
+
+.action-btn i {
+  margin-right: 6px;
+}
+
+/* インストールボタン */
+#install-app {
+  background-color: #9b59b6;
+}
+
+#install-app:hover {
+  background-color: #8e44ad;
+}
+
+/* 設定ボタン */
+#settings-btn {
+  background-color: #f39c12;
+}
+
+#settings-btn:hover {
+  background-color: #e67e22;
+}
+
+/* 共有ボタン */
+#share-btn {
+  background-color: #2ecc71;
+}
+
+#share-btn:hover {
+  background-color: #27ae60;
+}
+
+/* 通知ボタン */
+#notification-btn {
+  background-color: #e74c3c;
+}
+
+#notification-btn:hover {
+  background-color: #c0392b;
+}
+
+#notification-btn.active {
+  background-color: #27ae60;
+}
+
+#notification-btn.active:hover {
+  background-color: #2ecc71;
+}
+
+#notification-btn.disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* 設定モーダル */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow: auto;
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 600px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 24px;
+  color: #95a5a6;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.close-btn:hover {
+  color: #7f8c8d;
+}
+
+/* タブ切り替え */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #ddd;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  padding: 10px 15px;
+  background-color: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.tab-btn.active {
+  border-bottom-color: #3498db;
+  color: #3498db;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* フェードイン/フェードアウトアニメーション */
+.fade-in {
+  animation: fadeIn 0.3s ease-in forwards;
+}
+
+.fade-out {
+  animation: fadeOut 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+  .action-buttons {
+    flex-wrap: wrap;
+  }
+  
+  .action-btn {
+    flex: 1 0 calc(50% - 5px);
+  }
+  
+  .modal-content {
+    margin: 5% auto;
+    width: 90%;
+  }
+  
+  .connection-status {
+    margin-left: 0;
+    margin-top: 10px;
+  }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1a1a1a;
+    color: #f5f5f5;
+  }
+  
+  header, .kpi-card, .chart-card, .goals-container, .activity-metrics {
+    background-color: #2c2c2c;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  h1, h3, .kpi-value, .goal-title, .metric-title, .metric-value {
+    color: #f5f5f5;
+  }
+  
+  .kpi-title, .goal-value, .metric-target, .controls span {
+    color: #aaa;
+  }
+  
+  .controls select, .form-group input[type="text"], .form-group input[type="number"] {
+    background-color: #333;
+    border-color: #444;
+    color: #f5f5f5;
+  }
+  
+  .progress-container {
+    background-color: #444;
+  }
+  
+  .modal-content {
+    background-color: #2c2c2c;
+    color: #f5f5f5;
+  }
+  
+  .tab-btn {
+    color: #aaa;
+  }
+  
+  .tab-btn.active {
+    color: #3498db;
+  }
+  
+  #sync-indicator, .settings-link {
+    background-color: #333;
+    color: #aaa;
+  }
+  
+  .settings-link:hover {
+    background-color: #444;
+    color: #f5f5f5;
+  }
+  
+  .notification {
+    background-color: #2c2c2c;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .notification-title {
+    color: #f5f5f5;
+  }
+  
+  .notification-message {
+    color: #aaa;
+  }
+} 

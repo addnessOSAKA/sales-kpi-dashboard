@@ -1,113 +1,171 @@
 /**
- * 営業チームKPIダッシュボード設定ファイル
- * このファイルはAPIとの連携設定を行います
+ * 営業チームKPIダッシュボード 設定ファイル
+ * アプリケーションの設定を管理します
  */
 
-// API設定
-const API_CONFIG = {
-  // API接続先URL（スプレッドシート連携時に変更）
-  baseUrl: 'data', // ローカルJSONファイル用のパス
+// アプリケーション設定
+window.appConfig = {
+  // アプリケーション情報
+  appName: '営業チームKPIダッシュボード',
+  version: '1.0.0',
   
-  // APIエンドポイント（スプレッドシート連携時に変更）
-  endpoints: {
-    weekly: '/weekly-data.json',
-    monthly: '/monthly-data.json',
-    members: '/members-data.json',
-    summary: '/sample-data.json' // 全データを含むファイル
+  // API設定
+  api: {
+    baseUrl: '', // APIのベースURL
+    key: '',     // APIキー
   },
   
-  // API認証情報（スプレッドシート連携時に設定）
-  auth: {
-    apiKey: '', // APIキー
-    clientId: '', // クライアントID
-    clientSecret: '' // クライアントシークレット
+  // Google Sheets連携設定
+  googleSheets: {
+    spreadsheetId: '' // スプレッドシートID
+  },
+  
+  // Firebase設定
+  firebase: {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "your-project-id.firebaseapp.com",
+    projectId: "your-project-id",
+    storageBucket: "your-project-id.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
   },
   
   // データ更新間隔（ミリ秒）
-  refreshInterval: 300000, // 5分ごとに更新
+  refreshInterval: 5 * 60 * 1000, // 5分
   
-  // データキャッシュ設定
-  cache: {
-    enabled: true, // キャッシュを有効にする
-    expiry: 600000 // 10分間キャッシュを保持
+  // オフライン機能設定
+  offline: {
+    enabled: true,
+    syncInterval: 10 * 60 * 1000, // 10分
+    maxRetries: 3,
+    retryDelay: 30 * 1000 // 30秒
   },
   
-  // スプレッドシート連携設定
-  spreadsheet: {
-    enabled: false, // スプレッドシート連携を有効にする場合はtrueに設定
-    apiKey: '', // Google Sheets APIキー
-    id: '', // スプレッドシートID
-    sheets: {
-      weekly: 'Weekly', // 週次データのシート名
-      monthly: 'Monthly', // 月次データのシート名
-      members: 'Members', // 担当者データのシート名
-      summary: '' // サマリーデータのシート名（空の場合は他のシートから自動生成）
+  // 通知設定
+  notifications: {
+    displayDuration: 3000, // 3秒
+    position: 'top-right',
+    sound: true
+  },
+  
+  // 表示設定
+  display: {
+    dateFormat: 'YYYY年MM月DD日',
+    currencyFormat: '¥#,###',
+    defaultPeriod: {
+      weekly: 'current',
+      monthly: 'current'
+    },
+    pagination: {
+      itemsPerPage: 10,
+      maxPagesShown: 5
     }
+  },
+  
+  // チャート設定
+  charts: {
+    colors: [
+      '#3498db', '#2ecc71', '#f1c40f', '#e74c3c', '#9b59b6',
+      '#1abc9c', '#d35400', '#34495e', '#16a085', '#c0392b'
+    ],
+    animation: {
+      duration: 1000,
+      easing: 'easeOutQuart'
+    }
+  },
+  
+  // 目標設定
+  goals: {
+    approach: 160,
+    meeting: 120,
+    negotiation: 90,
+    proposal: 50,
+    contract: 20,
+    amount: 40000000
+  },
+  
+  // しきい値設定
+  thresholds: {
+    danger: 70,  // 70%未満は危険
+    warning: 90, // 70-90%は警告
+    good: 100    // 90%以上は良好
+  },
+  
+  // 認証設定
+  auth: {
+    requireAuth: true,
+    sessionTimeout: 24 * 60 * 60 * 1000, // 24時間
+    roles: ['user', 'manager', 'admin']
   }
 };
 
-// 表示設定
-const DISPLAY_CONFIG = {
-  // 日付フォーマット
-  dateFormat: {
-    weekly: 'YYYY年M月第W週',
-    monthly: 'YYYY年M月',
-    yearly: 'YYYY年'
-  },
+// 設定の読み込み（ローカルストレージから）
+function loadConfig() {
+  try {
+    const savedConfig = localStorage.getItem('appConfig');
+    if (savedConfig) {
+      const parsedConfig = JSON.parse(savedConfig);
+      
+      // 保存された設定を現在の設定にマージ
+      window.appConfig = {
+        ...window.appConfig,
+        ...parsedConfig
+      };
+      
+      console.log('設定を読み込みました');
+    }
+  } catch (error) {
+    console.error('設定の読み込みに失敗しました:', error);
+  }
+}
+
+// 設定の保存（ローカルストレージに）
+function saveConfig(config) {
+  try {
+    localStorage.setItem('appConfig', JSON.stringify(config));
+    console.log('設定を保存しました');
+    return true;
+  } catch (error) {
+    console.error('設定の保存に失敗しました:', error);
+    return false;
+  }
+}
+
+// 設定の更新
+function updateConfig(newConfig) {
+  // 現在の設定と新しい設定をマージ
+  window.appConfig = {
+    ...window.appConfig,
+    ...newConfig
+  };
   
-  // チャートカラー設定
-  chartColors: {
-    approach: '#3498db', // アプローチ数
-    meeting: '#f39c12',  // 面談数
-    negotiation: '#2ecc71', // 商談数
-    proposal: '#9b59b6',  // 提案数
-    contract: '#e74c3c',  // 契約数
-    amount: '#27ae60'     // 契約金額
-  },
-  
-  // 目標達成率の色分け
-  progressColors: {
-    good: '#27ae60',    // 90%以上
-    warning: '#f39c12', // 60%以上90%未満
-    danger: '#e74c3c'   // 60%未満
-  },
-  
-  // デフォルト表示期間
-  defaultPeriod: {
-    weekly: '2025年3月第3週',
-    monthly: '2025年3月',
-    yearly: '2025年'
-  },
-  
-  // デフォルト表示タブ
-  defaultView: 'weekly' // 'weekly', 'monthly', 'members'
+  // 設定を保存
+  return saveConfig(window.appConfig);
+}
+
+// 設定のリセット
+function resetConfig() {
+  try {
+    localStorage.removeItem('appConfig');
+    console.log('設定をリセットしました');
+    
+    // ページをリロード
+    window.location.reload();
+    
+    return true;
+  } catch (error) {
+    console.error('設定のリセットに失敗しました:', error);
+    return false;
+  }
+}
+
+// 設定をグローバルに公開
+window.configUtils = {
+  loadConfig,
+  saveConfig,
+  updateConfig,
+  resetConfig
 };
 
-// エクスポート設定
-const EXPORT_CONFIG = {
-  // エクスポート形式
-  formats: ['csv', 'excel', 'pdf'],
-  
-  // PDFエクスポート設定
-  pdf: {
-    pageSize: 'A4',
-    orientation: 'landscape',
-    title: '営業チームKPIダッシュボード',
-    footer: '© 2025 営業部'
-  }
-};
-
-// 通知設定
-const NOTIFICATION_CONFIG = {
-  // 目標達成通知
-  goalAlert: {
-    enabled: true,
-    threshold: 90 // 90%以上で通知
-  },
-  
-  // 目標未達通知
-  warningAlert: {
-    enabled: true,
-    threshold: 60 // 60%未満で通知
-  }
-}; 
+// 初期化時に設定を読み込む
+loadConfig(); 

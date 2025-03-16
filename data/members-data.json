@@ -1,0 +1,153 @@
+{
+  "members": [
+    {
+      "id": "member1",
+      "name": "山内",
+      "role": "営業マネージャー",
+      "email": "yamauchi@example.com",
+      "phone": "03-1234-5678"
+    },
+    {
+      "id": "member2",
+      "name": "内村",
+      "role": "シニア営業",
+      "email": "uchimura@example.com",
+      "phone": "03-1234-5679"
+    },
+    {
+      "id": "member3",
+      "name": "谷川",
+      "role": "営業",
+      "email": "tanigawa@example.com",
+      "phone": "03-1234-5680"
+    },
+    {
+      "id": "member4",
+      "name": "出口",
+      "role": "営業",
+      "email": "deguchi@example.com",
+      "phone": "03-1234-5681"
+    }
+  ],
+  "performance": {
+    "member1": {
+      "current": {
+        "approach": 38,
+        "meeting": 29,
+        "negotiation": 19,
+        "proposal": 12,
+        "contract": 9,
+        "amount": 32500000
+      },
+      "target": {
+        "approach": 40,
+        "meeting": 30,
+        "negotiation": 20,
+        "proposal": 15,
+        "contract": 8,
+        "amount": 30000000
+      },
+      "efficiency": {
+        "approach_to_meeting": 76.3,
+        "meeting_to_negotiation": 65.5,
+        "negotiation_to_proposal": 63.2,
+        "proposal_to_contract": 75.0,
+        "avg_contract_amount": 3611111
+      }
+    },
+    "member2": {
+      "current": {
+        "approach": 35,
+        "meeting": 28,
+        "negotiation": 18,
+        "proposal": 10,
+        "contract": 7,
+        "amount": 25800000
+      },
+      "target": {
+        "approach": 38,
+        "meeting": 29,
+        "negotiation": 19,
+        "proposal": 12,
+        "contract": 7,
+        "amount": 26800000
+      },
+      "efficiency": {
+        "approach_to_meeting": 80.0,
+        "meeting_to_negotiation": 64.3,
+        "negotiation_to_proposal": 55.6,
+        "proposal_to_contract": 70.0,
+        "avg_contract_amount": 3685714
+      }
+    },
+    "member3": {
+      "current": {
+        "approach": 32,
+        "meeting": 25,
+        "negotiation": 16,
+        "proposal": 8,
+        "contract": 6,
+        "amount": 19700000
+      },
+      "target": {
+        "approach": 35,
+        "meeting": 27,
+        "negotiation": 18,
+        "proposal": 10,
+        "contract": 6,
+        "amount": 21200000
+      },
+      "efficiency": {
+        "approach_to_meeting": 78.1,
+        "meeting_to_negotiation": 64.0,
+        "negotiation_to_proposal": 50.0,
+        "proposal_to_contract": 75.0,
+        "avg_contract_amount": 3283333
+      }
+    },
+    "member4": {
+      "current": {
+        "approach": 30,
+        "meeting": 22,
+        "negotiation": 14,
+        "proposal": 7,
+        "contract": 5,
+        "amount": 18000000
+      },
+      "target": {
+        "approach": 33,
+        "meeting": 25,
+        "negotiation": 16,
+        "proposal": 9,
+        "contract": 6,
+        "amount": 20000000
+      },
+      "efficiency": {
+        "approach_to_meeting": 73.3,
+        "meeting_to_negotiation": 63.6,
+        "negotiation_to_proposal": 50.0,
+        "proposal_to_contract": 71.4,
+        "avg_contract_amount": 3600000
+      }
+    }
+  },
+  "trend": {
+    "periods": ["2025-01", "2025-02", "2025-03"],
+    "member1": {
+      "contract": [7, 8, 9],
+      "amount": [25000000, 28000000, 32500000]
+    },
+    "member2": {
+      "contract": [6, 7, 7],
+      "amount": [22000000, 24500000, 25800000]
+    },
+    "member3": {
+      "contract": [5, 5, 6],
+      "amount": [17500000, 18200000, 19700000]
+    },
+    "member4": {
+      "contract": [4, 5, 5],
+      "amount": [15000000, 17000000, 18000000]
+    }
+  }
+} 

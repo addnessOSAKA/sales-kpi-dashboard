@@ -1,0 +1,93 @@
+{
+  "monthly": [
+    {
+      "period": "2025-03",
+      "approach": 496,
+      "meeting": 408,
+      "negotiation": 254,
+      "proposal": 128,
+      "contract": 37,
+      "amount": 96000000
+    },
+    {
+      "period": "2025-02",
+      "approach": 475,
+      "meeting": 385,
+      "negotiation": 240,
+      "proposal": 122,
+      "contract": 38,
+      "amount": 95000000
+    },
+    {
+      "period": "2025-01",
+      "approach": 450,
+      "meeting": 365,
+      "negotiation": 225,
+      "proposal": 115,
+      "contract": 32,
+      "amount": 84000000
+    },
+    {
+      "period": "2024-12",
+      "approach": 465,
+      "meeting": 375,
+      "negotiation": 230,
+      "proposal": 118,
+      "contract": 35,
+      "amount": 87000000
+    },
+    {
+      "period": "2024-11",
+      "approach": 480,
+      "meeting": 390,
+      "negotiation": 240,
+      "proposal": 122,
+      "contract": 36,
+      "amount": 91000000
+    },
+    {
+      "period": "2024-10",
+      "approach": 470,
+      "meeting": 380,
+      "negotiation": 235,
+      "proposal": 120,
+      "contract": 34,
+      "amount": 89000000
+    }
+  ],
+  "conversion": {
+    "current": {
+      "approach_to_meeting": 82.3,
+      "meeting_to_negotiation": 62.3,
+      "negotiation_to_proposal": 50.4,
+      "proposal_to_contract": 28.9,
+      "approach_to_contract": 7.5
+    },
+    "trend": [
+      {
+        "period": "2025-01",
+        "approach_to_contract": 7.1
+      },
+      {
+        "period": "2025-02",
+        "approach_to_contract": 8.0
+      },
+      {
+        "period": "2025-03",
+        "approach_to_contract": 7.5
+      }
+    ]
+  },
+  "contract_distribution": {
+    "categories": ["100万円未満", "100-300万円", "300-500万円", "500-1000万円", "1000万円以上"],
+    "counts": [8, 12, 9, 5, 3]
+  },
+  "goals": {
+    "approach": 520,
+    "meeting": 420,
+    "negotiation": 270,
+    "proposal": 135,
+    "contract": 38,
+    "amount": 100000000
+  }
+} 

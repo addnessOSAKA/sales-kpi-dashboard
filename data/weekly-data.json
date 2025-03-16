@@ -1,0 +1,84 @@
+{
+  "weekly": [
+    {
+      "period": "2025-03-1",
+      "approach": 143,
+      "meeting": 112,
+      "negotiation": 74,
+      "proposal": 38,
+      "contract": 13,
+      "amount": 35600000
+    },
+    {
+      "period": "2025-03-2",
+      "approach": 148,
+      "meeting": 114,
+      "negotiation": 76,
+      "proposal": 37,
+      "contract": 14,
+      "amount": 37800000
+    },
+    {
+      "period": "2025-02-4",
+      "approach": 140,
+      "meeting": 109,
+      "negotiation": 75,
+      "proposal": 39,
+      "contract": 12,
+      "amount": 33800000
+    },
+    {
+      "period": "2025-02-3",
+      "approach": 135,
+      "meeting": 105,
+      "negotiation": 74,
+      "proposal": 38,
+      "contract": 12,
+      "amount": 32500000
+    },
+    {
+      "period": "2025-02-2",
+      "approach": 131,
+      "meeting": 102,
+      "negotiation": 72,
+      "proposal": 36,
+      "contract": 11,
+      "amount": 30200000
+    },
+    {
+      "period": "2025-02-1",
+      "approach": 127,
+      "meeting": 99,
+      "negotiation": 70,
+      "proposal": 35,
+      "contract": 9,
+      "amount": 26500000
+    },
+    {
+      "period": "2025-01-4",
+      "approach": 123,
+      "meeting": 95,
+      "negotiation": 68,
+      "proposal": 34,
+      "contract": 10,
+      "amount": 27800000
+    },
+    {
+      "period": "2025-01-3",
+      "approach": 118,
+      "meeting": 92,
+      "negotiation": 65,
+      "proposal": 32,
+      "contract": 9,
+      "amount": 25600000
+    }
+  ],
+  "goals": {
+    "approach": 160,
+    "meeting": 120,
+    "negotiation": 90,
+    "proposal": 50,
+    "contract": 20,
+    "amount": 40000000
+  }
+} 

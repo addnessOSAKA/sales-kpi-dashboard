@@ -1,0 +1,290 @@
+/**
+ * 営業チームKPIダッシュボード 認証スタイル
+ * ログインと認証関連のスタイル定義
+ */
+
+/* ログインボタン */
+.login-btn {
+  display: flex;
+  align-items: center;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.login-btn:hover {
+  background-color: #2980b9;
+}
+
+.login-btn i {
+  margin-right: 6px;
+}
+
+/* ユーザーメニュー */
+.user-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid #3498db;
+}
+
+.user-name {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #2c3e50;
+  cursor: pointer;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  min-width: 180px;
+  z-index: 100;
+  display: none;
+  margin-top: 5px;
+}
+
+.user-menu:hover .user-dropdown {
+  display: block;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 15px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f7fa;
+}
+
+.dropdown-item i {
+  margin-right: 8px;
+  font-size: 16px;
+  color: #3498db;
+}
+
+/* 認証モーダル */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  overflow: auto;
+}
+
+.modal-content {
+  background-color: #fff;
+  margin: 10% auto;
+  padding: 25px;
+  border-radius: 8px;
+  max-width: 500px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 24px;
+  color: #95a5a6;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.close-btn:hover {
+  color: #7f8c8d;
+}
+
+.modal h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+/* Firebase UI カスタマイズ */
+#firebaseui-auth-container {
+  margin-top: 20px;
+}
+
+/* プロファイルモーダル */
+.profile-container {
+  margin-top: 20px;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #3498db;
+}
+
+.profile-info {
+  margin-left: 20px;
+}
+
+.profile-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.profile-info p {
+  margin: 5px 0;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.profile-settings {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.profile-settings h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+/* 権限ベースの表示制御 */
+.admin-only,
+.manager-only {
+  display: none;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .user-name {
+    display: none !important;
+  }
+  
+  .modal-content {
+    margin: 5% auto;
+    width: 90%;
+    padding: 20px;
+  }
+  
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .profile-info {
+    margin-left: 0;
+    margin-top: 15px;
+  }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+  .login-btn {
+    background-color: #2980b9;
+  }
+  
+  .login-btn:hover {
+    background-color: #3498db;
+  }
+  
+  .user-name {
+    color: #ecf0f1;
+  }
+  
+  .user-dropdown {
+    background-color: #2c3e50;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+  
+  .dropdown-item {
+    color: #ecf0f1;
+  }
+  
+  .dropdown-item:hover {
+    background-color: #34495e;
+  }
+  
+  .modal-content {
+    background-color: #2c3e50;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  }
+  
+  .modal h2 {
+    color: #ecf0f1;
+  }
+  
+  .close-btn {
+    color: #bdc3c7;
+  }
+  
+  .close-btn:hover {
+    color: #ecf0f1;
+  }
+  
+  .profile-info h3 {
+    color: #ecf0f1;
+  }
+  
+  .profile-info p {
+    color: #bdc3c7;
+  }
+  
+  .profile-settings {
+    background-color: #34495e;
+  }
+  
+  .profile-settings h3 {
+    color: #ecf0f1;
+  }
+} 

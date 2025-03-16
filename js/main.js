@@ -1,335 +1,194 @@
 /**
  * 営業チームKPIダッシュボード メインスクリプト
+ * アプリケーションの初期化と機能統合を行います
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-  // 通知ユーティリティのインスタンスを作成
-  const notificationUtils = new NotificationUtils();
+  // サービスワーカーの登録
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('Service Worker 登録成功:', registration.scope);
+      })
+      .catch(error => {
+        console.error('Service Worker 登録失敗:', error);
+      });
+  }
   
-  // 設定の読み込み
-  loadSettings();
+  // 接続状態の監視
+  const connectionStatus = document.getElementById('connection-status');
   
-  // APIサービスのインスタンスを作成
-  const apiService = new ApiService(API_CONFIG);
+  function updateConnectionStatus() {
+    if (navigator.onLine) {
+      connectionStatus.textContent = 'オンライン';
+      connectionStatus.classList.remove('offline');
+      connectionStatus.classList.add('online');
+    } else {
+      connectionStatus.textContent = 'オフライン';
+      connectionStatus.classList.remove('online');
+      connectionStatus.classList.add('offline');
+    }
+  }
   
-  // エクスポートユーティリティのインスタンスを作成
-  const exportUtils = new ExportUtils();
+  // 初期状態を設定
+  updateConnectionStatus();
   
-  // DOM要素
-  const viewSelector = document.getElementById('viewSelector');
-  const periodSelector = document.getElementById('periodSelector');
+  // オンライン/オフライン状態の変化を監視
+  window.addEventListener('online', updateConnectionStatus);
+  window.addEventListener('offline', updateConnectionStatus);
+  
+  // PWAインストールボタンの設定
+  let deferredPrompt;
+  const installButton = document.getElementById('install-app');
+  
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // インストールプロンプトを表示せずに保存
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // インストールボタンを表示
+    if (installButton) {
+      installButton.style.display = 'block';
+      
+      installButton.addEventListener('click', () => {
+        // インストールプロンプトを表示
+        deferredPrompt.prompt();
+        
+        // ユーザーの選択を待機
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('ユーザーがPWAのインストールを承認しました');
+            window.notificationUtils.showSuccess('アプリがインストールされました');
+          } else {
+            console.log('ユーザーがPWAのインストールを拒否しました');
+          }
+          
+          // プロンプトを破棄
+          deferredPrompt = null;
+          
+          // インストールボタンを非表示
+          installButton.style.display = 'none';
+        });
+      });
+    }
+  });
+  
+  // PWAがインストールされた場合
+  window.addEventListener('appinstalled', (e) => {
+    console.log('アプリがインストールされました');
+    
+    // インストールボタンを非表示
+    if (installButton) {
+      installButton.style.display = 'none';
+    }
+  });
+  
+  // 認証関連の設定
+  initAuthUI();
+  
+  // 各サービスの初期化
+  initializeServices();
+  
+  // ビュー要素
+  const viewSelector = document.getElementById('view-selector');
   const weeklyDashboard = document.getElementById('weekly-dashboard');
   const monthlyDashboard = document.getElementById('monthly-dashboard');
   const membersDashboard = document.getElementById('members-dashboard');
-  const exportButtons = document.querySelectorAll('.export-btn');
-  
-  // チャートインスタンス
-  let weeklyTrendChart = null;
-  let weeklyActivityChart = null;
-  let monthlyTrendChart = null;
-  let conversionRateChart = null;
-  let contractAmountChart = null;
-  let memberPerformanceChart = null;
-  let efficiencyChart = null;
+  const dailyDataDashboard = document.getElementById('daily-data-dashboard');
+  const projectsDashboard = document.getElementById('projects-dashboard');
   
   // 現在のビュー
   let currentView = 'weekly';
-  let dashboardData = null;
-  
-  // サンプルデータ
-  const sampleData = {
-    weekly: {
-      trends: {
-        labels: ['第4週', '第3週', '第2週', '第1週', '今週'],
-        datasets: [
-          {
-            label: 'アプローチ数',
-            data: [120, 132, 125, 140, 148],
-            borderColor: '#3498db',
-            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-            tension: 0.4
-          },
-          {
-            label: '面談数',
-            data: [95, 105, 98, 110, 114],
-            borderColor: '#2ecc71',
-            backgroundColor: 'rgba(46, 204, 113, 0.1)',
-            tension: 0.4
-          },
-          {
-            label: '商談数',
-            data: [65, 72, 68, 74, 76],
-            borderColor: '#f39c12',
-            backgroundColor: 'rgba(243, 156, 18, 0.1)',
-            tension: 0.4
-          },
-          {
-            label: '契約数',
-            data: [12, 14, 13, 15, 14],
-            borderColor: '#e74c3c',
-            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-            tension: 0.4
-          }
-        ]
-      },
-      activities: {
-        labels: ['アプローチ', '面談', '商談', '提案', '契約'],
-        datasets: [{
-          data: [148, 114, 76, 37, 14],
-          backgroundColor: [
-            '#3498db',
-            '#2ecc71',
-            '#f39c12',
-            '#9b59b6',
-            '#e74c3c'
-          ]
-        }]
-      },
-      goals: [
-        { title: 'アプローチ数', current: 148, target: 160, percentage: 92.5 },
-        { title: '面談数', current: 114, target: 120, percentage: 95.0 },
-        { title: '商談数', current: 76, target: 90, percentage: 84.4 },
-        { title: '提案数', current: 37, target: 50, percentage: 74.0 },
-        { title: '契約数', current: 14, target: 20, percentage: 70.0 },
-        { title: '契約金額', current: 37.8, target: 40.0, percentage: 94.5, format: 'currency' }
-      ]
-    },
-    monthly: {
-      trends: {
-        labels: ['10月', '11月', '12月', '1月', '2月', '3月'],
-        datasets: [
-          {
-            label: 'アプローチ数',
-            data: [450, 470, 460, 480, 490, 496],
-            borderColor: '#3498db',
-            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-            tension: 0.4
-          },
-          {
-            label: '面談数',
-            data: [380, 390, 385, 395, 400, 408],
-            borderColor: '#2ecc71',
-            backgroundColor: 'rgba(46, 204, 113, 0.1)',
-            tension: 0.4
-          },
-          {
-            label: '商談数',
-            data: [240, 245, 242, 248, 250, 254],
-            borderColor: '#f39c12',
-            backgroundColor: 'rgba(243, 156, 18, 0.1)',
-            tension: 0.4
-          },
-          {
-            label: '契約数',
-            data: [35, 38, 36, 39, 38, 37],
-            borderColor: '#e74c3c',
-            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-            tension: 0.4
-          }
-        ]
-      },
-      conversion: {
-        labels: ['アプローチ→面談', '面談→商談', '商談→提案', '提案→契約'],
-        datasets: [{
-          label: '転換率',
-          data: [82.3, 62.3, 50.4, 28.9],
-          backgroundColor: [
-            '#3498db',
-            '#2ecc71',
-            '#f39c12',
-            '#e74c3c'
-          ]
-        }]
-      },
-      contractAmounts: {
-        labels: ['100万円未満', '100-300万円', '300-500万円', '500-1000万円', '1000万円以上'],
-        datasets: [{
-          label: '契約数',
-          data: [8, 12, 9, 5, 3],
-          backgroundColor: '#3498db'
-        }]
-      },
-      funnel: [
-        { title: 'アプローチ→面談 転換率', current: 408, total: 496, percentage: 82.3 },
-        { title: '面談→商談 転換率', current: 254, total: 408, percentage: 62.3 },
-        { title: '商談→提案 転換率', current: 128, total: 254, percentage: 50.4 },
-        { title: '提案→契約 転換率', current: 37, total: 128, percentage: 28.9 },
-        { title: '全体成約率（アプローチ→契約）', current: 37, total: 496, percentage: 7.5 }
-      ]
-    },
-    members: {
-      performance: {
-        labels: ['山内', '内村', '谷川', '出口'],
-        datasets: [
-          {
-            label: '契約金額',
-            data: [32.5, 25.8, 19.7, 18.0],
-            backgroundColor: '#3498db'
-          },
-          {
-            label: '目標金額',
-            data: [30.0, 26.8, 21.2, 20.0],
-            backgroundColor: '#e74c3c'
-          }
-        ]
-      },
-      efficiency: {
-        labels: ['山内', '内村', '谷川', '出口'],
-        datasets: [
-          {
-            label: 'アプローチ→契約率',
-            data: [9.2, 7.8, 6.5, 6.1],
-            borderColor: '#3498db',
-            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-            tension: 0.4
-          },
-          {
-            label: '平均契約金額',
-            data: [3.6, 3.2, 2.8, 2.6],
-            borderColor: '#e74c3c',
-            backgroundColor: 'rgba(231, 76, 60, 0.1)',
-            tension: 0.4,
-            yAxisID: 'y1'
-          }
-        ]
-      },
-      data: [
-        { name: '山内', amount: 32.5, target: 30.0, percentage: 108.3 },
-        { name: '内村', amount: 25.8, target: 26.8, percentage: 96.3 },
-        { name: '谷川', amount: 19.7, target: 21.2, percentage: 92.9 },
-        { name: '出口', amount: 18.0, target: 20.0, percentage: 90.0 }
-      ],
-      goals: [
-        { title: '山内', current: 32.5, target: 30.0, percentage: 108.3, format: 'currency' },
-        { title: '内村', current: 25.8, target: 26.8, percentage: 96.3, format: 'currency' },
-        { title: '谷川', current: 19.7, target: 21.2, percentage: 92.9, format: 'currency' },
-        { title: '出口', current: 18.0, target: 20.0, percentage: 90.0, format: 'currency' }
-      ]
-    }
-  };
-  
-  // データの読み込み
-  loadData();
-  
-  // 自動更新の設定
-  setupAutoRefresh();
   
   // イベントリスナー
-  viewSelector.addEventListener('change', handleViewChange);
-  periodSelector.addEventListener('change', handlePeriodChange);
+  if (viewSelector) {
+    viewSelector.addEventListener('change', handleViewChange);
+  }
   
-  // メンバータブのイベントリスナー
-  const memberTabs = document.querySelectorAll('.member-tab');
-  memberTabs.forEach(tab => {
-    tab.addEventListener('click', function() {
-      memberTabs.forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
-      updateMemberData(this.textContent);
-    });
-  });
+  // データ更新ボタン
+  const refreshButton = document.getElementById('refresh-data');
+  if (refreshButton) {
+    refreshButton.addEventListener('click', refreshData);
+  }
   
-  // エクスポートボタンのイベントリスナー
-  exportButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const format = this.getAttribute('data-format');
-      exportCurrentView(format);
-    });
-  });
+  // 設定ボタン
+  const settingsButton = document.getElementById('settings-btn');
+  if (settingsButton) {
+    settingsButton.addEventListener('click', openSettings);
+  }
   
-  // ウィンドウのリサイズイベントリスナーを追加
-  window.addEventListener('resize', function() {
-    // チャートを再描画
-    if (currentView === 'weekly') {
-      updateWeeklyCharts();
-    } else if (currentView === 'monthly') {
-      updateMonthlyCharts();
-    } else if (currentView === 'members') {
-      updateMemberCharts();
-    }
-  });
+  // ウィンドウのリサイズイベントリスナー
+  window.addEventListener('resize', handleResize);
   
   /**
-   * 設定を読み込む
+   * サービスを初期化する
    */
-  function loadSettings() {
+  function initializeServices() {
     try {
-      const savedSettings = localStorage.getItem('kpiDashboardSettings');
-      
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        
-        // API設定を更新
-        if (window.API_CONFIG) {
-          // スプレッドシート設定
-          API_CONFIG.spreadsheet = settings.spreadsheet;
-          
-          // データ更新間隔
-          API_CONFIG.refreshInterval = settings.refreshInterval || 300000;
-          
-          // キャッシュ設定
-          API_CONFIG.cache = settings.cache || { enabled: true, expiry: 600000 };
-        }
-        
-        // 通知設定を更新
-        if (window.NOTIFICATION_CONFIG) {
-          NOTIFICATION_CONFIG.goalAlert = settings.notification?.goalAlert || 
-            { enabled: true, threshold: 90 };
-          NOTIFICATION_CONFIG.warningAlert = settings.notification?.warningAlert || 
-            { enabled: true, threshold: 60 };
-        }
+      // IndexedDBサービスの初期化
+      if (!window.dbService) {
+        window.dbService = new DbService();
       }
+      
+      // APIサービスの初期化
+      if (!window.apiService) {
+        window.apiService = new ApiService();
+      }
+      
+      // 同期サービスの初期化
+      if (!window.syncService) {
+        window.syncService = new SyncService(window.dbService, window.apiService);
+        window.syncService.init();
+      }
+      
+      // 通知ユーティリティの初期化
+      if (!window.notificationUtils) {
+        window.notificationUtils = new NotificationUtils();
+      }
+      
+      // エクスポートユーティリティの初期化
+      if (!window.exportUtils) {
+        window.exportUtils = new ExportUtils();
+      }
+      
+      console.log('すべてのサービスが初期化されました');
+      
+      // すべての機能を初期化
+      initializeAllFeatures();
     } catch (error) {
-      console.error('設定の読み込み中にエラーが発生しました:', error);
+      console.error('サービスの初期化中にエラーが発生しました:', error);
     }
   }
   
   /**
-   * データを読み込む
+   * すべての機能を初期化する
    */
-  async function loadData() {
+  function initializeAllFeatures() {
     try {
-      // APIからデータを取得
-      // 本来はAPIから取得するが、サンプルデータを使用
-      dashboardData = sampleData;
+      // チャート関連の機能を初期化
+      initializeCharts();
       
-      // ダッシュボードを更新
-      updateDashboard();
+      // PWAインストール機能を初期化
+      initializeInstallPrompt();
       
-      // 目標達成状況をチェック
-      notificationUtils.checkGoalAchievement(dashboardData);
+      // エクスポート機能を初期化
+      initializeExportFeatures();
       
-      // すべてのチャートを初期化（非表示のタブも含む）
-      initializeAllCharts();
+      // 共有機能を初期化
+      initializeShareFeature();
       
+      // 通知許可を要求
+      requestNotificationPermission();
+      
+      // オフラインモードの表示を更新
+      updateOfflineUI();
+      
+      // 同期状態の表示を更新
+      updateSyncUI();
+      
+      console.log('すべての機能が初期化されました');
     } catch (error) {
-      console.error('データの読み込み中にエラーが発生しました:', error);
-      notificationUtils.showError('データの読み込みに失敗しました');
-    }
-  }
-  
-  /**
-   * 自動更新を設定
-   */
-  function setupAutoRefresh() {
-    if (API_CONFIG.refreshInterval > 0) {
-      setInterval(async () => {
-        try {
-          // データを再取得
-          // 本来はAPIから取得するが、サンプルデータを使用
-          dashboardData = sampleData;
-          
-          // ダッシュボードを更新
-          updateDashboard();
-          
-          // 目標達成状況をチェック
-          notificationUtils.checkGoalAchievement(dashboardData);
-          
-          notificationUtils.showSuccess('データを更新しました');
-        } catch (error) {
-          console.error('データの自動更新中にエラーが発生しました:', error);
-          notificationUtils.showError('データの自動更新に失敗しました');
-        }
-      }, API_CONFIG.refreshInterval);
+      console.error('機能の初期化中にエラーが発生しました:', error);
     }
   }
   
@@ -340,578 +199,202 @@ document.addEventListener('DOMContentLoaded', function() {
     const newView = viewSelector.value;
     
     // 現在のビューを非表示
-    document.getElementById(`${currentView}-dashboard`).classList.remove('active');
+    hideAllDashboards();
     
     // 新しいビューを表示
-    document.getElementById(`${newView}-dashboard`).classList.add('active');
+    showDashboard(newView);
     
     // 現在のビューを更新
     currentView = newView;
     
-    // ダッシュボードを更新
-    updateDashboard();
-    
     // 通知を表示
-    notificationUtils.showInfo(`${getViewName(currentView)}ビューを表示しています`);
+    window.notificationUtils.showInfo(`${getViewName(currentView)}ビューを表示しています`);
   }
   
   /**
-   * 期間変更ハンドラー
+   * すべてのダッシュボードを非表示にする
    */
-  function handlePeriodChange() {
-    const selectedPeriod = periodSelector.value;
-    
-    // 選択された期間に基づいてデータを取得
-    loadPeriodData(selectedPeriod);
-    
-    // 通知を表示
-    notificationUtils.showInfo(`期間を${selectedPeriod}に変更しました`);
+  function hideAllDashboards() {
+    const dashboards = document.querySelectorAll('.dashboard');
+    dashboards.forEach(dashboard => {
+      dashboard.style.display = 'none';
+    });
   }
   
   /**
-   * 期間データを読み込む
-   * @param {string} period - 選択された期間
+   * 指定したダッシュボードを表示する
+   * @param {string} view - 表示するビュー
    */
-  async function loadPeriodData(period) {
+  function showDashboard(view) {
+    const dashboard = document.getElementById(`${view}-dashboard`);
+    if (dashboard) {
+      dashboard.style.display = 'block';
+    }
+  }
+  
+  /**
+   * データを更新する
+   */
+  function refreshData() {
     try {
-      // 期間に基づいてエンドポイントを決定
-      let endpoint;
-      if (currentView === 'weekly') {
-        endpoint = 'weekly';
-      } else if (currentView === 'monthly') {
-        endpoint = 'monthly';
+      // オンライン状態を確認
+      if (navigator.onLine) {
+        // APIからデータを取得して同期
+        window.syncService.fetchAndSaveData()
+          .then(() => {
+            window.notificationUtils.showSuccess('データが更新されました');
+          })
+          .catch(error => {
+            console.error('データ更新エラー:', error);
+            window.notificationUtils.showError('データの更新に失敗しました');
+          });
       } else {
-        endpoint = 'members';
+        window.notificationUtils.showWarning('オフライン状態です。オンラインに接続してから再試行してください');
       }
-      
-      // APIからデータを取得
-      // 本来はAPIから取得するが、サンプルデータを使用
-      dashboardData = sampleData;
-      
-      // ダッシュボードを更新
-      updateDashboard();
-      
-      // すべてのチャートを更新
-      initializeAllCharts();
-      
     } catch (error) {
-      console.error('期間データの読み込み中にエラーが発生しました:', error);
-      notificationUtils.showError('期間データの読み込みに失敗しました');
+      console.error('データ更新中にエラーが発生しました:', error);
+      window.notificationUtils.showError('データの更新に失敗しました');
     }
   }
   
   /**
-   * ダッシュボードを更新
+   * 設定画面を開く
    */
-  function updateDashboard() {
-    if (!dashboardData) return;
+  function openSettings() {
+    // 設定モーダルを表示
+    const settingsModal = document.getElementById('settings-modal');
+    if (settingsModal) {
+      settingsModal.style.display = 'block';
+      
+      // 現在の設定を読み込む
+      loadCurrentSettings();
+      
+      // 閉じるボタンのイベントリスナー
+      const closeButton = settingsModal.querySelector('.close-btn');
+      if (closeButton) {
+        closeButton.addEventListener('click', () => {
+          settingsModal.style.display = 'none';
+        });
+      }
+      
+      // 保存ボタンのイベントリスナー
+      const saveButton = settingsModal.querySelector('#save-settings');
+      if (saveButton) {
+        saveButton.addEventListener('click', saveSettings);
+      }
+      
+      // リセットボタンのイベントリスナー
+      const resetButton = settingsModal.querySelector('#reset-settings');
+      if (resetButton) {
+        resetButton.addEventListener('click', resetSettings);
+      }
+    }
+  }
+  
+  /**
+   * 現在の設定を読み込む
+   */
+  function loadCurrentSettings() {
+    // 設定フォームに現在の設定値を設定
+    const apiBaseUrlInput = document.getElementById('api-base-url');
+    const apiKeyInput = document.getElementById('api-key');
+    const spreadsheetIdInput = document.getElementById('spreadsheet-id');
+    const refreshIntervalInput = document.getElementById('refresh-interval');
+    const notificationsEnabledInput = document.getElementById('notifications-enabled');
     
+    if (apiBaseUrlInput) {
+      apiBaseUrlInput.value = window.appConfig.apiBaseUrl || '';
+    }
+    
+    if (apiKeyInput) {
+      apiKeyInput.value = window.appConfig.apiKey || '';
+    }
+    
+    if (spreadsheetIdInput) {
+      spreadsheetIdInput.value = window.appConfig.spreadsheetId || '';
+    }
+    
+    if (refreshIntervalInput) {
+      const minutes = (window.appConfig.refreshInterval || 300000) / 60000;
+      refreshIntervalInput.value = minutes;
+    }
+    
+    if (notificationsEnabledInput) {
+      notificationsEnabledInput.checked = window.appConfig.notifications?.enabled !== false;
+    }
+  }
+  
+  /**
+   * 設定を保存する
+   */
+  function saveSettings() {
     try {
-      if (currentView === 'weekly') {
-        updateWeeklyDashboard();
-      } else if (currentView === 'monthly') {
-        updateMonthlyDashboard();
-      } else if (currentView === 'members') {
-        updateMembersDashboard();
+      // フォームから設定値を取得
+      const apiBaseUrl = document.getElementById('api-base-url').value;
+      const apiKey = document.getElementById('api-key').value;
+      const spreadsheetId = document.getElementById('spreadsheet-id').value;
+      const refreshInterval = parseInt(document.getElementById('refresh-interval').value, 10) * 60000;
+      const notificationsEnabled = document.getElementById('notifications-enabled').checked;
+      
+      // 設定を更新
+      const newConfig = {
+        apiBaseUrl,
+        apiKey,
+        spreadsheetId,
+        refreshInterval,
+        notifications: {
+          enabled: notificationsEnabled,
+          duration: window.appConfig.notifications?.duration || 3000
+        }
+      };
+      
+      // 設定を保存
+      window.configUtils.updateConfig(newConfig);
+      
+      // 設定モーダルを閉じる
+      const settingsModal = document.getElementById('settings-modal');
+      if (settingsModal) {
+        settingsModal.style.display = 'none';
       }
+      
+      // 通知を表示
+      window.notificationUtils.showSuccess('設定が保存されました');
+      
+      // サービスを再初期化
+      initializeServices();
+      
+      // データを更新
+      refreshData();
     } catch (error) {
-      console.error('ダッシュボードの更新中にエラーが発生しました:', error);
-      notificationUtils.showError('ダッシュボードの更新に失敗しました');
+      console.error('設定の保存中にエラーが発生しました:', error);
+      window.notificationUtils.showError('設定の保存に失敗しました');
     }
   }
   
   /**
-   * 週次ダッシュボードを更新
+   * 設定をリセットする
    */
-  function updateWeeklyDashboard() {
-    // KPIカードの更新
-    updateKPICards(weeklyDashboard, dashboardData.weekly);
-    
-    // チャートの更新
-    updateWeeklyCharts();
-    
-    // 目標達成状況の更新
-    updateGoals('weeklyGoals', dashboardData.weekly.goals);
-  }
-  
-  /**
-   * 月次ダッシュボードを更新
-   */
-  function updateMonthlyDashboard() {
-    // KPIカードの更新
-    updateKPICards(monthlyDashboard, dashboardData.monthly);
-    
-    // チャートの更新
-    updateMonthlyCharts();
-    
-    // 営業フェーズ効率分析の更新
-    updateSalesFunnel(dashboardData.monthly.funnel);
-  }
-  
-  /**
-   * 担当者別ダッシュボードを更新
-   */
-  function updateMembersDashboard() {
-    // KPIカードの更新
-    updateMemberKPICards(dashboardData.members);
-    
-    // チャートの更新
-    updateMemberCharts();
-    
-    // 担当者別目標達成状況の更新
-    updateMemberGoals(dashboardData.members.goals);
-  }
-  
-  /**
-   * KPIカードを更新
-   * @param {HTMLElement} container - カードを含むコンテナ
-   * @param {Object} data - 表示するデータ
-   */
-  function updateKPICards(container, data) {
-    // KPIカードの更新処理
-    // 実際のアプリケーションでは、ここでKPIカードの値を更新
-  }
-  
-  /**
-   * すべてのチャートを初期化
-   */
-  function initializeAllCharts() {
-    try {
-      // 週次チャートの初期化
-      updateWeeklyCharts();
-      
-      // 月次チャートの初期化
-      updateMonthlyCharts();
-      
-      // 担当者別チャートの初期化
-      updateMemberCharts();
-    } catch (error) {
-      console.error('チャートの初期化中にエラーが発生しました:', error);
-      notificationUtils.showError('チャートの初期化に失敗しました');
-    }
-  }
-  
-  /**
-   * 週次チャートを更新
-   */
-  function updateWeeklyCharts() {
-    try {
-      // 週次トレンドチャート
-      const weeklyTrendCtx = document.getElementById('weeklyTrendChart');
-      if (!weeklyTrendCtx) return;
-      
-      const ctx = weeklyTrendCtx.getContext('2d');
-      
-      // 既存のチャートを破棄
-      if (weeklyTrendChart) {
-        weeklyTrendChart.destroy();
-      }
-      
-      // 新しいチャートを作成
-      weeklyTrendChart = new Chart(ctx, {
-        type: 'line',
-        data: dashboardData.weekly.trends,
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              position: 'top',
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          },
-          layout: {
-            padding: {
-              top: 10,
-              right: 10,
-              bottom: 10,
-              left: 10
-            }
-          }
-        }
-      });
-      
-      // 週次活動比率チャート
-      const weeklyActivityCtx = document.getElementById('weeklyActivityChart');
-      if (!weeklyActivityCtx) return;
-      
-      const activityCtx = weeklyActivityCtx.getContext('2d');
-      
-      // 既存のチャートを破棄
-      if (weeklyActivityChart) {
-        weeklyActivityChart.destroy();
-      }
-      
-      // 新しいチャートを作成
-      weeklyActivityChart = new Chart(activityCtx, {
-        type: 'doughnut',
-        data: dashboardData.weekly.activities,
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              position: 'right',
-            }
-          },
-          layout: {
-            padding: {
-              top: 10,
-              right: 10,
-              bottom: 10,
-              left: 10
-            }
-          }
-        }
-      });
-    } catch (error) {
-      console.error('週次チャートの更新中にエラーが発生しました:', error);
-    }
-  }
-  
-  /**
-   * 月次チャートを更新
-   */
-  function updateMonthlyCharts() {
-    try {
-      // 月次トレンドチャート
-      const monthlyTrendCtx = document.getElementById('monthlyTrendChart');
-      if (!monthlyTrendCtx) return;
-      
-      const ctx = monthlyTrendCtx.getContext('2d');
-      
-      // 既存のチャートを破棄
-      if (monthlyTrendChart) {
-        monthlyTrendChart.destroy();
-      }
-      
-      // 新しいチャートを作成
-      monthlyTrendChart = new Chart(ctx, {
-        type: 'line',
-        data: dashboardData.monthly.trends,
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              position: 'top',
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          },
-          layout: {
-            padding: {
-              top: 10,
-              right: 10,
-              bottom: 10,
-              left: 10
-            }
-          }
-        }
-      });
-      
-      // コンバージョン率チャート
-      const conversionRateCtx = document.getElementById('conversionRateChart');
-      if (!conversionRateCtx) return;
-      
-      const convCtx = conversionRateCtx.getContext('2d');
-      
-      // 既存のチャートを破棄
-      if (conversionRateChart) {
-        conversionRateChart.destroy();
-      }
-      
-      // 新しいチャートを作成
-      conversionRateChart = new Chart(convCtx, {
-        type: 'bar',
-        data: dashboardData.monthly.conversion,
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              display: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100,
-              ticks: {
-                callback: function(value) {
-                  return value + '%';
-                }
-              }
-            }
-          },
-          layout: {
-            padding: {
-              top: 10,
-              right: 10,
-              bottom: 10,
-              left: 10
-            }
-          }
-        }
-      });
-      
-      // 契約金額分布チャート
-      const contractAmountCtx = document.getElementById('contractAmountChart');
-      if (!contractAmountCtx) return;
-      
-      const contractCtx = contractAmountCtx.getContext('2d');
-      
-      // 既存のチャートを破棄
-      if (contractAmountChart) {
-        contractAmountChart.destroy();
-      }
-      
-      // 新しいチャートを作成
-      contractAmountChart = new Chart(contractCtx, {
-        type: 'bar',
-        data: dashboardData.monthly.contractAmounts,
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              display: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true
-            }
-          },
-          layout: {
-            padding: {
-              top: 10,
-              right: 10,
-              bottom: 10,
-              left: 10
-            }
-          }
-        }
-      });
-    } catch (error) {
-      console.error('月次チャートの更新中にエラーが発生しました:', error);
-    }
-  }
-  
-  /**
-   * 担当者別チャートを更新
-   */
-  function updateMemberCharts() {
-    try {
-      // 担当者別パフォーマンスチャート
-      const memberPerformanceCtx = document.getElementById('memberPerformanceChart');
-      if (!memberPerformanceCtx) return;
-      
-      const ctx = memberPerformanceCtx.getContext('2d');
-      
-      // 既存のチャートを破棄
-      if (memberPerformanceChart) {
-        memberPerformanceChart.destroy();
-      }
-      
-      // 新しいチャートを作成
-      memberPerformanceChart = new Chart(ctx, {
-        type: 'bar',
-        data: dashboardData.members.performance,
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              position: 'top',
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function(value) {
-                  return '¥' + value + 'M';
-                }
-              }
-            }
-          },
-          layout: {
-            padding: {
-              top: 10,
-              right: 10,
-              bottom: 10,
-              left: 10
-            }
-          }
-        }
-      });
-      
-      // 効率性チャート
-      const efficiencyCtx = document.getElementById('efficiencyChart');
-      if (!efficiencyCtx) return;
-      
-      const effCtx = efficiencyCtx.getContext('2d');
-      
-      // 既存のチャートを破棄
-      if (efficiencyChart) {
-        efficiencyChart.destroy();
-      }
-      
-      // 新しいチャートを作成
-      efficiencyChart = new Chart(effCtx, {
-        type: 'line',
-        data: dashboardData.members.efficiency,
-        options: {
-          responsive: true,
-          maintainAspectRatio: true,
-          plugins: {
-            legend: {
-              position: 'top',
-            },
-            tooltip: {
-              mode: 'index',
-              intersect: false
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              position: 'left',
-              ticks: {
-                callback: function(value) {
-                  return value + '%';
-                }
-              }
-            },
-            y1: {
-              beginAtZero: true,
-              position: 'right',
-              grid: {
-                drawOnChartArea: false
-              },
-              ticks: {
-                callback: function(value) {
-                  return '¥' + value + 'M';
-                }
-              }
-            }
-          },
-          layout: {
-            padding: {
-              top: 10,
-              right: 10,
-              bottom: 10,
-              left: 10
-            }
-          }
-        }
-      });
-    } catch (error) {
-      console.error('担当者別チャートの更新中にエラーが発生しました:', error);
-    }
-  }
-  
-  /**
-   * 目標達成状況を更新
-   * @param {string} containerId - 目標コンテナのID
-   * @param {Array} goals - 目標データ
-   */
-  function updateGoals(containerId, goals) {
-    // 目標達成状況の更新処理
-    // 実際のアプリケーションでは、ここで目標達成状況を更新
-  }
-  
-  /**
-   * 営業フェーズ効率分析を更新
-   * @param {Object} funnel - ファネルデータ
-   */
-  function updateSalesFunnel(funnel) {
-    // 営業フェーズ効率分析の更新処理
-    // 実際のアプリケーションでは、ここで営業フェーズ効率分析を更新
-  }
-  
-  /**
-   * 担当者別KPIカードを更新
-   * @param {Object} membersData - 担当者データ
-   */
-  function updateMemberKPICards(membersData) {
-    // 担当者別KPIカードの更新処理
-    // 実際のアプリケーションでは、ここで担当者別KPIカードを更新
-  }
-  
-  /**
-   * 担当者別目標達成状況を更新
-   * @param {Array} goals - 目標データ
-   */
-  function updateMemberGoals(goals) {
-    // 担当者別目標達成状況の更新処理
-    // 実際のアプリケーションでは、ここで担当者別目標達成状況を更新
-  }
-  
-  /**
-   * 担当者データを更新
-   * @param {string} memberName - 担当者名
-   */
-  function updateMemberData(memberName) {
-    if (memberName === '全員') {
-      // 全員のデータを表示
-      updateMembersDashboard();
-      notificationUtils.showInfo('全担当者のデータを表示しています');
-    } else {
-      // 特定の担当者のデータを表示
-      const memberData = dashboardData.members.data.find(m => m.name === memberName);
-      if (memberData) {
-        // 担当者データの表示処理
-        // ...
-        notificationUtils.showInfo(`${memberName}さんのデータを表示しています`);
+  function resetSettings() {
+    if (confirm('設定をリセットしてもよろしいですか？')) {
+      try {
+        // 設定をリセット
+        window.configUtils.resetConfig();
+        
+        // 通知を表示
+        window.notificationUtils.showSuccess('設定がリセットされました');
+      } catch (error) {
+        console.error('設定のリセット中にエラーが発生しました:', error);
+        window.notificationUtils.showError('設定のリセットに失敗しました');
       }
     }
   }
   
   /**
-   * 現在のビューをエクスポート
-   * @param {string} format - エクスポート形式
+   * リサイズハンドラー
    */
-  function exportCurrentView(format) {
-    try {
-      let data;
-      let filename;
-      
-      if (currentView === 'weekly') {
-        data = dashboardData.weekly;
-        filename = `週次レポート_${periodSelector.value}`;
-      } else if (currentView === 'monthly') {
-        data = dashboardData.monthly;
-        filename = `月次レポート_${periodSelector.value}`;
-      } else {
-        data = dashboardData.members;
-        filename = `担当者別レポート_${periodSelector.value}`;
-      }
-      
-      // データをエクスポート
-      exportUtils.exportData(data, format, filename);
-      
-      notificationUtils.showSuccess(`${getViewName(currentView)}データを${format.toUpperCase()}形式でエクスポートしました`);
-    } catch (error) {
-      console.error('データのエクスポート中にエラーが発生しました:', error);
-      notificationUtils.showError('データのエクスポートに失敗しました');
-    }
+  function handleResize() {
+    // チャートのリサイズ処理
+    // Chart.jsは自動的にリサイズされるため、特別な処理は不要
   }
   
   /**
@@ -927,8 +410,599 @@ document.addEventListener('DOMContentLoaded', function() {
         return '月次';
       case 'members':
         return '担当者別';
+      case 'daily-data':
+        return '日次データ';
+      case 'projects':
+        return '案件管理';
       default:
         return '';
     }
   }
-}); 
+  
+  // 初期ビューを表示
+  hideAllDashboards();
+  showDashboard(currentView);
+  
+  // データの初期読み込み
+  refreshData();
+  
+  // 自動更新の設定
+  setupAutoRefresh();
+  
+  /**
+   * 自動更新を設定
+   */
+  function setupAutoRefresh() {
+    const refreshInterval = window.appConfig.refreshInterval || 5 * 60 * 1000; // デフォルト5分
+    
+    if (refreshInterval > 0) {
+      setInterval(refreshData, refreshInterval);
+      console.log(`データの自動更新が${refreshInterval / 60000}分間隔で設定されました`);
+    }
+  }
+  
+  /**
+   * チャート関連の機能を初期化する
+   */
+  function initializeCharts() {
+    // Chart.jsの設定
+    Chart.defaults.font.family = "'Noto Sans JP', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#333';
+    
+    // 週次チャートの初期化
+    initializeWeeklyCharts();
+    
+    // 月次チャートの初期化
+    initializeMonthlyCharts();
+    
+    // 担当者別チャートの初期化
+    initializeMemberCharts();
+  }
+  
+  /**
+   * 週次チャートを初期化する
+   */
+  function initializeWeeklyCharts() {
+    // 週次チャートの初期化処理
+    // 実際のアプリケーションでは、ここで週次チャートを初期化
+  }
+  
+  /**
+   * 月次チャートを初期化する
+   */
+  function initializeMonthlyCharts() {
+    // 月次チャートの初期化処理
+    // 実際のアプリケーションでは、ここで月次チャートを初期化
+  }
+  
+  /**
+   * 担当者別チャートを初期化する
+   */
+  function initializeMemberCharts() {
+    // 担当者別チャートの初期化処理
+    // 実際のアプリケーションでは、ここで担当者別チャートを初期化
+  }
+  
+  /**
+   * アプリのインストール機能を初期化する
+   */
+  function initializeInstallPrompt() {
+    // PWAインストールボタンの設定
+    const installButton = document.getElementById('install-app');
+    if (!installButton) return;
+    
+    // 初期状態では非表示
+    installButton.style.display = 'none';
+    
+    // インストールプロンプトイベントを監視
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // インストールプロンプトを表示せずに保存
+      e.preventDefault();
+      window.deferredPrompt = e;
+      
+      // インストールボタンを表示
+      installButton.style.display = 'block';
+    });
+    
+    // インストールボタンのクリックイベント
+    installButton.addEventListener('click', async () => {
+      if (!window.deferredPrompt) return;
+      
+      // インストールプロンプトを表示
+      window.deferredPrompt.prompt();
+      
+      // ユーザーの選択を待機
+      const { outcome } = await window.deferredPrompt.userChoice;
+      
+      // 結果に応じた処理
+      if (outcome === 'accepted') {
+        window.notificationUtils.showSuccess('アプリがインストールされました');
+      }
+      
+      // プロンプトを破棄
+      window.deferredPrompt = null;
+      
+      // インストールボタンを非表示
+      installButton.style.display = 'none';
+    });
+    
+    // PWAがインストールされた場合
+    window.addEventListener('appinstalled', () => {
+      // インストールボタンを非表示
+      installButton.style.display = 'none';
+      
+      // プロンプトを破棄
+      window.deferredPrompt = null;
+      
+      // 通知を表示
+      window.notificationUtils.showSuccess('アプリがインストールされました');
+    });
+  }
+  
+  /**
+   * エクスポート機能を初期化する
+   */
+  function initializeExportFeatures() {
+    // エクスポートボタンのイベントリスナーを設定
+    const exportButtons = document.querySelectorAll('.export-btn');
+    exportButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const format = button.getAttribute('data-format') || 'csv';
+        const viewType = button.getAttribute('data-view') || currentView;
+        
+        // エクスポートユーティリティを使用してエクスポート
+        if (window.exportUtils) {
+          window.exportUtils.exportCurrentView(viewType);
+        } else {
+          window.notificationUtils.showError('エクスポート機能が利用できません');
+        }
+      });
+    });
+  }
+  
+  /**
+   * 共有機能を初期化する
+   */
+  function initializeShareFeature() {
+    // 共有ボタンのイベントリスナーを設定
+    const shareButton = document.getElementById('share-btn');
+    if (!shareButton) return;
+    
+    // Web Share APIがサポートされているか確認
+    if (navigator.share) {
+      shareButton.style.display = 'block';
+      
+      shareButton.addEventListener('click', async () => {
+        try {
+          await navigator.share({
+            title: '営業チームKPIダッシュボード',
+            text: '営業チームのKPIを管理するためのダッシュボードです。',
+            url: window.location.href
+          });
+          
+          window.notificationUtils.showSuccess('共有しました');
+        } catch (error) {
+          console.error('共有エラー:', error);
+          
+          if (error.name !== 'AbortError') {
+            window.notificationUtils.showError('共有に失敗しました');
+          }
+        }
+      });
+    } else {
+      // Web Share APIがサポートされていない場合は非表示
+      shareButton.style.display = 'none';
+    }
+  }
+  
+  /**
+   * 通知許可を要求する
+   */
+  function requestNotificationPermission() {
+    // 通知ボタンのイベントリスナーを設定
+    const notificationButton = document.getElementById('notification-btn');
+    if (!notificationButton) return;
+    
+    // 通知がサポートされているか確認
+    if ('Notification' in window) {
+      // 現在の通知許可状態を確認
+      if (Notification.permission === 'granted') {
+        notificationButton.textContent = '通知: オン';
+        notificationButton.classList.add('active');
+      } else if (Notification.permission === 'denied') {
+        notificationButton.textContent = '通知: ブロック';
+        notificationButton.classList.add('disabled');
+      }
+      
+      // 通知ボタンのクリックイベント
+      notificationButton.addEventListener('click', async () => {
+        if (Notification.permission === 'denied') {
+          window.notificationUtils.showWarning('ブラウザの設定から通知の許可を変更してください');
+          return;
+        }
+        
+        if (Notification.permission === 'granted') {
+          // 通知をオフにする（実際には許可を取り消せないので、設定で無効化）
+          window.appConfig.notifications.enabled = false;
+          window.configUtils.saveConfig(window.appConfig);
+          
+          notificationButton.textContent = '通知: オフ';
+          notificationButton.classList.remove('active');
+          
+          window.notificationUtils.showInfo('通知が無効になりました');
+        } else {
+          // 通知の許可を要求
+          const permission = await Notification.requestPermission();
+          
+          if (permission === 'granted') {
+            window.appConfig.notifications.enabled = true;
+            window.configUtils.saveConfig(window.appConfig);
+            
+            notificationButton.textContent = '通知: オン';
+            notificationButton.classList.add('active');
+            
+            // テスト通知を送信
+            window.notificationUtils.sendPushNotification(
+              '通知が有効になりました',
+              '重要な更新があった場合に通知が届きます'
+            );
+          } else {
+            notificationButton.textContent = '通知: ブロック';
+            notificationButton.classList.add('disabled');
+            
+            window.notificationUtils.showWarning('通知が許可されませんでした');
+          }
+        }
+      });
+    } else {
+      // 通知がサポートされていない場合は非表示
+      notificationButton.style.display = 'none';
+    }
+  }
+  
+  /**
+   * オフラインモードの表示を更新する
+   */
+  function updateOfflineUI() {
+    // オフラインモードの表示を更新
+    const offlineIndicator = document.getElementById('offline-indicator');
+    if (!offlineIndicator) return;
+    
+    // オンライン/オフライン状態の変化を監視
+    window.addEventListener('online', () => {
+      offlineIndicator.style.display = 'none';
+      
+      // データを同期
+      if (window.syncService) {
+        window.syncService.syncData();
+      }
+      
+      window.notificationUtils.showSuccess('オンラインに接続しました');
+    });
+    
+    window.addEventListener('offline', () => {
+      offlineIndicator.style.display = 'block';
+      window.notificationUtils.showWarning('オフラインモードに切り替わりました');
+    });
+    
+    // 初期状態を設定
+    if (navigator.onLine) {
+      offlineIndicator.style.display = 'none';
+    } else {
+      offlineIndicator.style.display = 'block';
+    }
+  }
+  
+  /**
+   * 同期状態の表示を更新する
+   */
+  function updateSyncUI() {
+    // 同期状態の表示を更新
+    const syncIndicator = document.getElementById('sync-indicator');
+    if (!syncIndicator || !window.syncService) return;
+    
+    // 同期状態の変化を監視
+    window.syncService.addStatusChangeListener((isOnline) => {
+      if (isOnline) {
+        syncIndicator.classList.remove('syncing');
+        syncIndicator.classList.add('synced');
+        syncIndicator.title = '同期済み';
+      } else {
+        syncIndicator.classList.remove('synced');
+        syncIndicator.classList.add('syncing');
+        syncIndicator.title = '同期中...';
+      }
+    });
+    
+    // 同期ボタンのクリックイベント
+    syncIndicator.addEventListener('click', () => {
+      if (navigator.onLine) {
+        window.syncService.syncData();
+        window.notificationUtils.showInfo('同期を開始しました');
+      } else {
+        window.notificationUtils.showWarning('オフライン状態です。オンラインに接続してから再試行してください');
+      }
+    });
+  }
+});
+
+/**
+ * 認証UI関連の初期化
+ */
+function initAuthUI() {
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const userProfileBtn = document.getElementById('user-profile-btn');
+  const authModal = document.getElementById('auth-modal');
+  const closeAuthModal = document.getElementById('close-auth-modal');
+  const profileModal = document.getElementById('profile-modal');
+  const closeProfileModal = document.getElementById('close-profile-modal');
+  const profileSettingsForm = document.getElementById('profile-settings-form');
+  
+  // ログインボタンクリック時の処理
+  if (loginBtn) {
+    loginBtn.addEventListener('click', () => {
+      if (window.authService) {
+        window.authService.showLoginModal();
+      } else {
+        console.error('認証サービスが初期化されていません');
+        showNotification('エラー', '認証サービスが利用できません', 'error');
+      }
+    });
+  }
+  
+  // ログアウトボタンクリック時の処理
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      if (window.authService) {
+        window.authService.logout();
+      }
+    });
+  }
+  
+  // プロファイルボタンクリック時の処理
+  if (userProfileBtn) {
+    userProfileBtn.addEventListener('click', () => {
+      showUserProfile();
+    });
+  }
+  
+  // 認証モーダルを閉じる
+  if (closeAuthModal) {
+    closeAuthModal.addEventListener('click', () => {
+      if (authModal) {
+        authModal.style.display = 'none';
+      }
+    });
+  }
+  
+  // プロファイルモーダルを閉じる
+  if (closeProfileModal) {
+    closeProfileModal.addEventListener('click', () => {
+      if (profileModal) {
+        profileModal.style.display = 'none';
+      }
+    });
+  }
+  
+  // モーダル外クリックで閉じる
+  window.addEventListener('click', (event) => {
+    if (event.target === authModal) {
+      authModal.style.display = 'none';
+    }
+    if (event.target === profileModal) {
+      profileModal.style.display = 'none';
+    }
+  });
+  
+  // プロファイル設定フォームの送信処理
+  if (profileSettingsForm) {
+    profileSettingsForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      saveUserSettings();
+    });
+  }
+  
+  // 認証状態の変更を監視
+  if (window.authService) {
+    window.authService.addAuthStateListener((user) => {
+      updateUIForAuthState(user);
+    });
+  }
+}
+
+/**
+ * 認証状態に基づいてUIを更新
+ * @param {Object} user - 認証されたユーザー情報
+ */
+function updateUIForAuthState(user) {
+  const adminElements = document.querySelectorAll('.admin-only');
+  const managerElements = document.querySelectorAll('.manager-only');
+  
+  if (user) {
+    // ユーザーがログインしている場合
+    if (window.authService) {
+      window.authService.getCurrentUserProfile().then(profile => {
+        if (profile) {
+          // 管理者要素の表示/非表示
+          adminElements.forEach(el => {
+            el.style.display = profile.role === 'admin' ? 'block' : 'none';
+          });
+          
+          // マネージャー要素の表示/非表示
+          managerElements.forEach(el => {
+            el.style.display = ['manager', 'admin'].includes(profile.role) ? 'block' : 'none';
+          });
+          
+          // ユーザー設定の適用
+          applyUserSettings(profile.settings);
+        }
+      });
+    }
+  } else {
+    // 未ログイン状態
+    adminElements.forEach(el => {
+      el.style.display = 'none';
+    });
+    
+    managerElements.forEach(el => {
+      el.style.display = 'none';
+    });
+  }
+}
+
+/**
+ * ユーザープロファイルを表示
+ */
+async function showUserProfile() {
+  if (!window.authService) return;
+  
+  const user = window.authService.getCurrentUser();
+  if (!user) return;
+  
+  const profileModal = document.getElementById('profile-modal');
+  const profileAvatar = document.getElementById('profile-avatar');
+  const profileName = document.getElementById('profile-name');
+  const profileEmail = document.getElementById('profile-email');
+  const profileRole = document.getElementById('profile-role');
+  const themeSelect = document.getElementById('theme-select');
+  const defaultViewSelect = document.getElementById('default-view-select');
+  const notificationsCheckbox = document.getElementById('notifications-checkbox');
+  
+  try {
+    // ユーザープロファイルを取得
+    const profile = await window.authService.getCurrentUserProfile();
+    
+    if (profile) {
+      // プロファイル情報を表示
+      if (profileAvatar) {
+        profileAvatar.src = user.photoURL || 'images/default-avatar.png';
+      }
+      
+      if (profileName) {
+        profileName.textContent = user.displayName || user.email;
+      }
+      
+      if (profileEmail) {
+        profileEmail.textContent = user.email;
+      }
+      
+      if (profileRole) {
+        const roleNames = {
+          'admin': '管理者',
+          'manager': 'マネージャー',
+          'user': '一般ユーザー'
+        };
+        profileRole.querySelector('span').textContent = roleNames[profile.role] || '一般ユーザー';
+      }
+      
+      // 設定フォームに値を設定
+      if (profile.settings) {
+        if (themeSelect) {
+          themeSelect.value = profile.settings.theme || 'light';
+        }
+        
+        if (defaultViewSelect) {
+          defaultViewSelect.value = profile.settings.defaultView || 'weekly';
+        }
+        
+        if (notificationsCheckbox) {
+          notificationsCheckbox.checked = profile.settings.notifications !== false;
+        }
+      }
+      
+      // モーダルを表示
+      if (profileModal) {
+        profileModal.style.display = 'block';
+      }
+    }
+  } catch (error) {
+    console.error('プロファイル取得エラー:', error);
+    showNotification('エラー', 'プロファイル情報の取得に失敗しました', 'error');
+  }
+}
+
+/**
+ * ユーザー設定を保存
+ */
+async function saveUserSettings() {
+  if (!window.authService) return;
+  
+  const user = window.authService.getCurrentUser();
+  if (!user) return;
+  
+  const themeSelect = document.getElementById('theme-select');
+  const defaultViewSelect = document.getElementById('default-view-select');
+  const notificationsCheckbox = document.getElementById('notifications-checkbox');
+  
+  try {
+    const settings = {
+      theme: themeSelect ? themeSelect.value : 'light',
+      defaultView: defaultViewSelect ? defaultViewSelect.value : 'weekly',
+      notifications: notificationsCheckbox ? notificationsCheckbox.checked : true
+    };
+    
+    // 設定を保存
+    const success = await window.authService.updateUserProfile({ settings });
+    
+    if (success) {
+      // 設定を適用
+      applyUserSettings(settings);
+      
+      // モーダルを閉じる
+      const profileModal = document.getElementById('profile-modal');
+      if (profileModal) {
+        profileModal.style.display = 'none';
+      }
+      
+      showNotification('設定保存', '設定が保存されました', 'success');
+    }
+  } catch (error) {
+    console.error('設定保存エラー:', error);
+    showNotification('エラー', '設定の保存に失敗しました', 'error');
+  }
+}
+
+/**
+ * ユーザー設定を適用
+ * @param {Object} settings - ユーザー設定
+ */
+function applyUserSettings(settings) {
+  if (!settings) return;
+  
+  // テーマの適用
+  if (settings.theme) {
+    document.documentElement.setAttribute('data-theme', settings.theme);
+    
+    if (settings.theme === 'system') {
+      // システム設定に合わせる
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    }
+  }
+  
+  // デフォルト表示の適用
+  if (settings.defaultView) {
+    const viewSelector = document.getElementById('viewSelector');
+    if (viewSelector && viewSelector.value !== settings.defaultView) {
+      viewSelector.value = settings.defaultView;
+      // 表示を切り替え
+      changeView(settings.defaultView);
+    }
+  }
+}
+
+/**
+ * 通知を表示
+ * @param {string} title - 通知タイトル
+ * @param {string} message - 通知メッセージ
+ * @param {string} type - 通知タイプ (success, error, warning, info)
+ */
+function showNotification(title, message, type = 'info') {
+  if (window.notificationUtils) {
+    window.notificationUtils.show(title, message, type);
+  } else {
+    console.log(`${type}: ${title} - ${message}`);
+  }
+} 

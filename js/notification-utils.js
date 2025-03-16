@@ -1,226 +1,181 @@
 /**
  * 営業チームKPIダッシュボード 通知ユーティリティ
- * このファイルは通知機能を提供します
+ * アプリケーション内の通知機能を提供します
  */
 
 class NotificationUtils {
-  constructor(config = NOTIFICATION_CONFIG) {
-    this.config = config;
-    this.notifications = [];
-    this.notificationContainer = null;
-    this.initNotificationContainer();
-  }
-
-  /**
-   * 通知コンテナを初期化する
-   */
-  initNotificationContainer() {
-    // 既存のコンテナがあれば削除
-    const existingContainer = document.getElementById('notification-container');
-    if (existingContainer) {
-      document.body.removeChild(existingContainer);
+  constructor() {
+    this.config = window.appConfig || {};
+    this.container = document.getElementById('notification-container');
+    
+    // 通知コンテナが存在しない場合は作成
+    if (!this.container) {
+      this.container = document.createElement('div');
+      this.container.id = 'notification-container';
+      document.body.appendChild(this.container);
     }
     
-    // 通知コンテナを作成
-    this.notificationContainer = document.createElement('div');
-    this.notificationContainer.id = 'notification-container';
-    this.notificationContainer.style.cssText = `
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 9999;
-      width: 300px;
-    `;
-    
-    document.body.appendChild(this.notificationContainer);
+    // プッシュ通知の許可を確認
+    this.checkNotificationPermission();
   }
-
+  
+  /**
+   * プッシュ通知の許可を確認する
+   */
+  checkNotificationPermission() {
+    if (!('Notification' in window)) {
+      console.log('このブラウザはプッシュ通知をサポートしていません');
+      return;
+    }
+    
+    if (Notification.permission === 'default') {
+      // 後でユーザーアクションに応じて許可を要求
+      console.log('プッシュ通知の許可が未設定です');
+    }
+  }
+  
+  /**
+   * プッシュ通知の許可を要求する
+   * @returns {Promise} 許可状態
+   */
+  requestNotificationPermission() {
+    if (!('Notification' in window)) {
+      return Promise.resolve('denied');
+    }
+    
+    return Notification.requestPermission();
+  }
+  
   /**
    * 通知を表示する
    * @param {string} message - 通知メッセージ
-   * @param {string} type - 通知タイプ（'success', 'warning', 'error', 'info'）
+   * @param {string} type - 通知タイプ（'success', 'error', 'warning', 'info'）
    * @param {number} duration - 表示時間（ミリ秒）
    */
-  showNotification(message, type = 'info', duration = 5000) {
-    // 通知IDを生成
-    const id = `notification-${Date.now()}`;
+  show(message, type = 'info', duration = null) {
+    if (!this.config.notifications || this.config.notifications.enabled === false) {
+      console.log(`通知: ${message} (${type})`);
+      return;
+    }
+    
+    // 表示時間を設定
+    const displayDuration = duration || (this.config.notifications && this.config.notifications.duration) || 3000;
     
     // 通知要素を作成
     const notification = document.createElement('div');
-    notification.id = id;
-    notification.className = `notification notification-${type}`;
-    notification.style.cssText = `
-      background-color: ${this.getBackgroundColor(type)};
-      color: white;
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
-      position: relative;
-    `;
-    
-    // 閉じるボタンを作成
-    const closeButton = document.createElement('span');
-    closeButton.innerHTML = '&times;';
-    closeButton.style.cssText = `
-      position: absolute;
-      top: 5px;
-      right: 10px;
-      cursor: pointer;
-      font-size: 18px;
-    `;
-    closeButton.addEventListener('click', () => this.removeNotification(id));
-    
-    // メッセージを設定
-    const messageElement = document.createElement('div');
-    messageElement.textContent = message;
-    
-    // 要素を追加
-    notification.appendChild(closeButton);
-    notification.appendChild(messageElement);
-    this.notificationContainer.appendChild(notification);
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
     
     // 通知を表示
+    this.container.appendChild(notification);
+    
+    // アニメーション効果
     setTimeout(() => {
-      notification.style.opacity = '1';
+      notification.classList.add('show');
     }, 10);
     
-    // 通知を保存
-    this.notifications.push({
-      id,
-      element: notification,
-      timer: setTimeout(() => this.removeNotification(id), duration)
-    });
-    
-    return id;
-  }
-
-  /**
-   * 通知を削除する
-   * @param {string} id - 通知ID
-   */
-  removeNotification(id) {
-    // 通知を検索
-    const index = this.notifications.findIndex(n => n.id === id);
-    if (index === -1) return;
-    
-    const notification = this.notifications[index];
-    
-    // タイマーをクリア
-    clearTimeout(notification.timer);
-    
-    // フェードアウト
-    notification.element.style.opacity = '0';
-    
-    // 要素を削除
+    // 指定時間後に通知を削除
     setTimeout(() => {
-      if (notification.element.parentNode) {
-        notification.element.parentNode.removeChild(notification.element);
-      }
-      this.notifications.splice(index, 1);
-    }, 300);
+      notification.classList.remove('show');
+      notification.classList.add('hide');
+      
+      // アニメーション完了後に要素を削除
+      setTimeout(() => {
+        if (notification.parentNode) {
+          this.container.removeChild(notification);
+        }
+      }, 300);
+    }, displayDuration);
+    
+    return notification;
   }
-
-  /**
-   * 通知の背景色を取得する
-   * @param {string} type - 通知タイプ
-   * @returns {string} 背景色
-   */
-  getBackgroundColor(type) {
-    switch (type) {
-      case 'success':
-        return '#27ae60';
-      case 'warning':
-        return '#f39c12';
-      case 'error':
-        return '#e74c3c';
-      case 'info':
-      default:
-        return '#3498db';
-    }
-  }
-
+  
   /**
    * 成功通知を表示する
    * @param {string} message - 通知メッセージ
    * @param {number} duration - 表示時間（ミリ秒）
    */
-  showSuccess(message, duration = 5000) {
-    return this.showNotification(message, 'success', duration);
+  showSuccess(message, duration = null) {
+    return this.show(message, 'success', duration);
   }
-
-  /**
-   * 警告通知を表示する
-   * @param {string} message - 通知メッセージ
-   * @param {number} duration - 表示時間（ミリ秒）
-   */
-  showWarning(message, duration = 5000) {
-    return this.showNotification(message, 'warning', duration);
-  }
-
+  
   /**
    * エラー通知を表示する
    * @param {string} message - 通知メッセージ
    * @param {number} duration - 表示時間（ミリ秒）
    */
-  showError(message, duration = 5000) {
-    return this.showNotification(message, 'error', duration);
+  showError(message, duration = null) {
+    return this.show(message, 'error', duration);
   }
-
+  
+  /**
+   * 警告通知を表示する
+   * @param {string} message - 通知メッセージ
+   * @param {number} duration - 表示時間（ミリ秒）
+   */
+  showWarning(message, duration = null) {
+    return this.show(message, 'warning', duration);
+  }
+  
   /**
    * 情報通知を表示する
    * @param {string} message - 通知メッセージ
    * @param {number} duration - 表示時間（ミリ秒）
    */
-  showInfo(message, duration = 5000) {
-    return this.showNotification(message, 'info', duration);
+  showInfo(message, duration = null) {
+    return this.show(message, 'info', duration);
   }
-
+  
   /**
-   * 目標達成状況に基づいて通知を表示する
-   * @param {Object} data - KPIデータ
+   * プッシュ通知を送信する
+   * @param {string} title - 通知タイトル
+   * @param {string} message - 通知メッセージ
+   * @param {Object} options - 通知オプション
    */
-  checkGoalAchievement(data) {
-    if (!data || !data.weekly || !data.weekly.current) return;
-    
-    const metrics = data.weekly.current.metrics;
-    
-    // 目標達成通知
-    if (this.config.goalAlert.enabled) {
-      Object.keys(metrics).forEach(key => {
-        const metric = metrics[key];
-        const percentage = (metric.value / metric.target) * 100;
-        
-        if (percentage >= this.config.goalAlert.threshold) {
-          const metricName = this.getMetricDisplayName(key);
-          this.showSuccess(`${metricName}が目標の${percentage.toFixed(1)}%を達成しました！`);
-        }
-      });
+  sendPushNotification(title, message, options = {}) {
+    if (!('Notification' in window)) {
+      console.log('このブラウザはプッシュ通知をサポートしていません');
+      return;
     }
     
-    // 目標未達通知
-    if (this.config.warningAlert.enabled) {
-      Object.keys(metrics).forEach(key => {
-        const metric = metrics[key];
-        const percentage = (metric.value / metric.target) * 100;
-        
-        if (percentage < this.config.warningAlert.threshold) {
-          const metricName = this.getMetricDisplayName(key);
-          this.showWarning(`${metricName}が目標の${percentage.toFixed(1)}%しか達成していません。`);
+    if (Notification.permission !== 'granted') {
+      this.requestNotificationPermission().then(permission => {
+        if (permission === 'granted') {
+          this.sendPushNotification(title, message, options);
         }
       });
+      return;
     }
+    
+    // デフォルトオプションとマージ
+    const notificationOptions = {
+      body: message,
+      icon: 'images/icon-192x192.png',
+      ...options
+    };
+    
+    // 通知を作成
+    const notification = new Notification(title, notificationOptions);
+    
+    // クリックイベント
+    notification.onclick = function() {
+      window.focus();
+      if (options.onClick) {
+        options.onClick();
+      }
+    };
+    
+    return notification;
   }
-
+  
   /**
-   * メトリック名の表示名を取得する
-   * @param {string} key - メトリックキー
-   * @returns {string} 表示名
+   * 目標達成通知を送信する
+   * @param {string} metric - メトリクス名
+   * @param {number} value - 達成値
+   * @param {number} target - 目標値
    */
-  getMetricDisplayName(key) {
-    const displayNames = {
+  sendGoalAchievedNotification(metric, value, target) {
+    const metricNames = {
       approach: 'アプローチ数',
       meeting: '面談数',
       negotiation: '商談数',
@@ -229,9 +184,59 @@ class NotificationUtils {
       amount: '契約金額'
     };
     
-    return displayNames[key] || key;
+    const metricName = metricNames[metric] || metric;
+    const percentage = Math.round((value / target) * 100);
+    
+    // アプリ内通知
+    this.showSuccess(`${metricName}が目標を達成しました！ (${percentage}%)`);
+    
+    // プッシュ通知
+    this.sendPushNotification(
+      '目標達成！',
+      `${metricName}が目標を達成しました！ (${percentage}%)`,
+      {
+        tag: `goal-${metric}`,
+        badge: 'images/badge-72x72.png'
+      }
+    );
+  }
+  
+  /**
+   * 目標未達通知を送信する
+   * @param {string} metric - メトリクス名
+   * @param {number} value - 達成値
+   * @param {number} target - 目標値
+   * @param {number} threshold - 警告閾値（0-1）
+   */
+  sendGoalWarningNotification(metric, value, target, threshold = 0.7) {
+    const metricNames = {
+      approach: 'アプローチ数',
+      meeting: '面談数',
+      negotiation: '商談数',
+      proposal: '提案数',
+      contract: '契約数',
+      amount: '契約金額'
+    };
+    
+    const metricName = metricNames[metric] || metric;
+    const percentage = Math.round((value / target) * 100);
+    
+    if ((value / target) < threshold) {
+      // アプリ内通知
+      this.showWarning(`${metricName}が目標を下回っています (${percentage}%)`);
+      
+      // プッシュ通知
+      this.sendPushNotification(
+        '目標未達警告',
+        `${metricName}が目標を下回っています (${percentage}%)`,
+        {
+          tag: `warning-${metric}`,
+          badge: 'images/badge-72x72.png'
+        }
+      );
+    }
   }
 }
 
-// 通知ユーティリティのインスタンスを作成
-const notificationUtils = new NotificationUtils(); 
+// グローバルインスタンスとしてエクスポート
+window.notificationUtils = new NotificationUtils(); 

@@ -1,743 +1,343 @@
 /**
  * 営業チームKPIダッシュボード APIサービス
- * このファイルはAPIとの連携処理を行います
+ * サーバーとのデータ通信を管理します
  */
 
 class ApiService {
-  constructor(config = API_CONFIG) {
-    this.config = config;
-    this.cache = {};
-    this.lastFetch = {};
-    this.isGoogleApiInitialized = false;
-  }
-
-  /**
-   * APIからデータを取得する
-   * @param {string} endpoint - エンドポイント名
-   * @returns {Promise<Object>} 取得したデータ
-   */
-  async fetchData(endpoint) {
-    try {
-      // キャッシュが有効で、キャッシュ期限内の場合はキャッシュから返す
-      if (this.shouldUseCache(endpoint)) {
-        console.log(`キャッシュからデータを取得: ${endpoint}`);
-        return this.cache[endpoint];
-      }
-
-      // スプレッドシート連携が有効な場合はGoogle Sheets APIを使用
-      if (this.isSpreadsheetEnabled()) {
-        console.log(`スプレッドシートからデータを取得: ${endpoint}`);
-        const data = await this.fetchFromSpreadsheet(endpoint);
-        
-        // キャッシュを更新
-        this.updateCache(endpoint, data);
-        
-        return data;
-      }
-      
-      // 通常のAPIまたはローカルJSONファイルからデータを取得
-      const url = `${this.config.baseUrl}${this.config.endpoints[endpoint]}`;
-      console.log(`APIからデータを取得: ${url}`);
-
-      const response = await fetch(url, this.getRequestOptions());
-      
-      if (!response.ok) {
-        throw new Error(`APIエラー: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      
-      // キャッシュを更新
-      this.updateCache(endpoint, data);
-      
-      return data;
-    } catch (error) {
-      console.error('データ取得エラー:', error);
-      notificationUtils.showError(`データ取得エラー: ${error.message}`);
-      
-      // エラー時はキャッシュがあればキャッシュから返す、なければデフォルトデータを返す
-      return this.cache[endpoint] || this.getDefaultData(endpoint);
-    }
-  }
-
-  /**
-   * スプレッドシート連携が有効かどうかを判定する
-   * @returns {boolean} スプレッドシート連携が有効かどうか
-   */
-  isSpreadsheetEnabled() {
-    return this.config.spreadsheet && 
-           this.config.spreadsheet.enabled && 
-           this.config.spreadsheet.id && 
-           this.config.spreadsheet.apiKey;
-  }
-
-  /**
-   * Google Sheets APIを初期化する
-   * @returns {Promise<void>}
-   */
-  async initGoogleApi() {
-    if (this.isGoogleApiInitialized) return;
+  constructor() {
+    this.config = window.appConfig || {};
+    this.baseUrl = this.config.apiBaseUrl || '';
+    this.apiKey = this.config.apiKey || '';
+    this.spreadsheetId = this.config.spreadsheetId || '';
+    this.useLocalData = !this.baseUrl || !this.apiKey || !this.spreadsheetId;
     
-    return new Promise((resolve, reject) => {
-      try {
-        // Google API クライアントライブラリを読み込む
-        const script = document.createElement('script');
-        script.src = 'https://apis.google.com/js/api.js';
-        script.onload = () => {
-          gapi.load('client', async () => {
-            try {
-              await gapi.client.init({
-                apiKey: this.config.spreadsheet.apiKey,
-                discoveryDocs: ['https://sheets.googleapis.com/$discovery/rest?version=v4']
-              });
-              
-              this.isGoogleApiInitialized = true;
-              console.log('Google Sheets API初期化完了');
-              notificationUtils.showSuccess('Google Sheets APIに接続しました');
-              resolve();
-            } catch (error) {
-              console.error('Google API初期化エラー:', error);
-              notificationUtils.showError('Google Sheets APIの初期化に失敗しました');
-              reject(error);
-            }
-          });
-        };
-        script.onerror = (error) => {
-          console.error('Google APIスクリプト読み込みエラー:', error);
-          notificationUtils.showError('Google APIの読み込みに失敗しました');
-          reject(error);
-        };
-        
-        document.body.appendChild(script);
-      } catch (error) {
-        console.error('Google API初期化エラー:', error);
-        notificationUtils.showError('Google APIの初期化に失敗しました');
-        reject(error);
-      }
-    });
-  }
-
-  /**
-   * スプレッドシートからデータを取得する
-   * @param {string} endpoint - エンドポイント名
-   * @returns {Promise<Object>} 取得したデータ
-   */
-  async fetchFromSpreadsheet(endpoint) {
-    try {
-      // Google API初期化
-      if (!this.isGoogleApiInitialized) {
-        await this.initGoogleApi();
-      }
-      
-      // スプレッドシートの設定を取得
-      const spreadsheetId = this.config.spreadsheet.id;
-      const sheetName = this.getSheetNameForEndpoint(endpoint);
-      
-      if (!sheetName) {
-        throw new Error(`エンドポイント ${endpoint} に対応するシート名が設定されていません`);
-      }
-      
-      // スプレッドシートからデータを取得
-      const response = await gapi.client.sheets.spreadsheets.values.get({
-        spreadsheetId: spreadsheetId,
-        range: sheetName
-      });
-      
-      // スプレッドシートのデータを変換
-      const data = this.convertSpreadsheetData(response.result.values, endpoint);
-      
-      return data;
-    } catch (error) {
-      console.error('スプレッドシートからのデータ取得エラー:', error);
-      notificationUtils.showError('スプレッドシートからのデータ取得に失敗しました');
-      throw error;
+    // ローカルデータの使用時に警告を表示
+    if (this.useLocalData) {
+      console.warn('APIの設定が不完全です。ローカルデータを使用します。');
     }
   }
-
+  
   /**
-   * エンドポイントに対応するシート名を取得する
-   * @param {string} endpoint - エンドポイント名
-   * @returns {string|null} シート名
+   * APIリクエストを送信する
+   * @param {string} endpoint - APIエンドポイント
+   * @param {Object} options - フェッチオプション
+   * @returns {Promise} レスポンス
    */
-  getSheetNameForEndpoint(endpoint) {
-    if (!this.config.spreadsheet || !this.config.spreadsheet.sheets) {
-      return null;
+  async fetchApi(endpoint, options = {}) {
+    if (this.useLocalData) {
+      return this.fetchLocalData(endpoint);
     }
     
-    return this.config.spreadsheet.sheets[endpoint] || null;
-  }
-
-  /**
-   * スプレッドシートのデータをアプリケーション用に変換する
-   * @param {Array<Array<string>>} values - スプレッドシートの値
-   * @param {string} endpoint - エンドポイント名
-   * @returns {Object} 変換されたデータ
-   */
-  convertSpreadsheetData(values, endpoint) {
-    if (!values || values.length === 0) {
-      throw new Error('スプレッドシートにデータがありません');
-    }
-    
-    // ヘッダー行を取得
-    const headers = values[0];
-    
-    // データ行を取得
-    const rows = values.slice(1);
-    
-    // エンドポイントに応じてデータを変換
-    switch (endpoint) {
-      case 'weekly':
-        return this.convertWeeklyData(headers, rows);
-      
-      case 'monthly':
-        return this.convertMonthlyData(headers, rows);
-      
-      case 'members':
-        return this.convertMembersData(headers, rows);
-      
-      case 'summary':
-        // summaryの場合は他のエンドポイントからデータを取得して結合
-        return this.createSummaryData();
-      
-      default:
-        // 汎用的な変換（オブジェクトの配列に変換）
-        return this.convertGenericData(headers, rows);
-    }
-  }
-
-  /**
-   * 週次データに変換する
-   * @param {Array<string>} headers - ヘッダー行
-   * @param {Array<Array<string>>} rows - データ行
-   * @returns {Object} 変換された週次データ
-   */
-  convertWeeklyData(headers, rows) {
-    try {
-      // 現在の期間のデータを取得（最新の行）
-      const currentRow = rows[rows.length - 1];
-      const currentPeriod = currentRow[headers.indexOf('period')];
-      
-      // メトリクスを構築
-      const metrics = {
-        approach: {
-          value: parseInt(currentRow[headers.indexOf('approach_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('approach_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('approach_change')])
-        },
-        meeting: {
-          value: parseInt(currentRow[headers.indexOf('meeting_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('meeting_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('meeting_change')])
-        },
-        negotiation: {
-          value: parseInt(currentRow[headers.indexOf('negotiation_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('negotiation_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('negotiation_change')])
-        },
-        proposal: {
-          value: parseInt(currentRow[headers.indexOf('proposal_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('proposal_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('proposal_change')])
-        },
-        contract: {
-          value: parseInt(currentRow[headers.indexOf('contract_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('contract_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('contract_change')])
-        },
-        amount: {
-          value: parseFloat(currentRow[headers.indexOf('amount_value')]),
-          target: parseFloat(currentRow[headers.indexOf('amount_target')]),
-          change: parseFloat(currentRow[headers.indexOf('amount_change')])
-        }
-      };
-      
-      // トレンドデータを構築
-      const periods = [];
-      const approach = [];
-      const meeting = [];
-      const contract = [];
-      
-      // 過去8週間分のデータを取得
-      const trendRows = rows.slice(-8);
-      
-      trendRows.forEach(row => {
-        periods.push(row[headers.indexOf('period_short')] || row[headers.indexOf('period')]);
-        approach.push(parseInt(row[headers.indexOf('approach_value')], 10));
-        meeting.push(parseInt(row[headers.indexOf('meeting_value')], 10));
-        contract.push(parseInt(row[headers.indexOf('contract_value')], 10));
-      });
-      
-      return {
-        current: {
-          period: currentPeriod,
-          metrics: metrics
-        },
-        trend: {
-          periods: periods,
-          approach: approach,
-          meeting: meeting,
-          contract: contract
-        }
-      };
-    } catch (error) {
-      console.error('週次データの変換エラー:', error);
-      notificationUtils.showError('週次データの変換に失敗しました');
-      throw error;
-    }
-  }
-
-  /**
-   * 月次データに変換する
-   * @param {Array<string>} headers - ヘッダー行
-   * @param {Array<Array<string>>} rows - データ行
-   * @returns {Object} 変換された月次データ
-   */
-  convertMonthlyData(headers, rows) {
-    try {
-      // 現在の期間のデータを取得（最新の行）
-      const currentRow = rows[rows.length - 1];
-      const currentPeriod = currentRow[headers.indexOf('period')];
-      
-      // メトリクスを構築
-      const metrics = {
-        approach: {
-          value: parseInt(currentRow[headers.indexOf('approach_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('approach_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('approach_change')])
-        },
-        meeting: {
-          value: parseInt(currentRow[headers.indexOf('meeting_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('meeting_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('meeting_change')])
-        },
-        negotiation: {
-          value: parseInt(currentRow[headers.indexOf('negotiation_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('negotiation_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('negotiation_change')])
-        },
-        proposal: {
-          value: parseInt(currentRow[headers.indexOf('proposal_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('proposal_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('proposal_change')])
-        },
-        contract: {
-          value: parseInt(currentRow[headers.indexOf('contract_value')], 10),
-          target: parseInt(currentRow[headers.indexOf('contract_target')], 10),
-          change: parseFloat(currentRow[headers.indexOf('contract_change')])
-        },
-        amount: {
-          value: parseFloat(currentRow[headers.indexOf('amount_value')]),
-          target: parseFloat(currentRow[headers.indexOf('amount_target')]),
-          change: parseFloat(currentRow[headers.indexOf('amount_change')])
-        }
-      };
-      
-      // コンバージョン率を構築
-      const conversion = {
-        approach_to_meeting: {
-          value: parseFloat(currentRow[headers.indexOf('approach_to_meeting')]),
-          from: parseInt(currentRow[headers.indexOf('approach_value')], 10),
-          to: parseInt(currentRow[headers.indexOf('meeting_value')], 10)
-        },
-        meeting_to_negotiation: {
-          value: parseFloat(currentRow[headers.indexOf('meeting_to_negotiation')]),
-          from: parseInt(currentRow[headers.indexOf('meeting_value')], 10),
-          to: parseInt(currentRow[headers.indexOf('negotiation_value')], 10)
-        },
-        negotiation_to_proposal: {
-          value: parseFloat(currentRow[headers.indexOf('negotiation_to_proposal')]),
-          from: parseInt(currentRow[headers.indexOf('negotiation_value')], 10),
-          to: parseInt(currentRow[headers.indexOf('proposal_value')], 10)
-        },
-        proposal_to_contract: {
-          value: parseFloat(currentRow[headers.indexOf('proposal_to_contract')]),
-          from: parseInt(currentRow[headers.indexOf('proposal_value')], 10),
-          to: parseInt(currentRow[headers.indexOf('contract_value')], 10)
-        },
-        approach_to_contract: {
-          value: parseFloat(currentRow[headers.indexOf('approach_to_contract')]),
-          from: parseInt(currentRow[headers.indexOf('approach_value')], 10),
-          to: parseInt(currentRow[headers.indexOf('contract_value')], 10)
-        }
-      };
-      
-      // 契約金額分布を構築
-      const distributionCategories = currentRow[headers.indexOf('distribution_categories')].split(',');
-      const distributionAmounts = currentRow[headers.indexOf('distribution_amounts')].split(',').map(Number);
-      
-      // トレンドデータを構築
-      const periods = [];
-      const approach = [];
-      const contract = [];
-      const amount = [];
-      const approach_to_contract = [];
-      
-      // 過去6ヶ月分のデータを取得
-      const trendRows = rows.slice(-6);
-      
-      trendRows.forEach(row => {
-        periods.push(row[headers.indexOf('period_short')] || row[headers.indexOf('period')]);
-        approach.push(parseInt(row[headers.indexOf('approach_value')], 10));
-        contract.push(parseInt(row[headers.indexOf('contract_value')], 10));
-        amount.push(parseFloat(row[headers.indexOf('amount_value')]));
-        approach_to_contract.push(parseFloat(row[headers.indexOf('approach_to_contract')]));
-      });
-      
-      return {
-        current: {
-          period: currentPeriod,
-          metrics: metrics,
-          conversion: conversion,
-          contract_distribution: {
-            categories: distributionCategories,
-            amounts: distributionAmounts
-          }
-        },
-        trend: {
-          periods: periods,
-          approach: approach,
-          contract: contract,
-          amount: amount
-        },
-        conversion_trend: {
-          periods: periods,
-          approach_to_contract: approach_to_contract
-        }
-      };
-    } catch (error) {
-      console.error('月次データの変換エラー:', error);
-      notificationUtils.showError('月次データの変換に失敗しました');
-      throw error;
-    }
-  }
-
-  /**
-   * 担当者データに変換する
-   * @param {Array<string>} headers - ヘッダー行
-   * @param {Array<Array<string>>} rows - データ行
-   * @returns {Object} 変換された担当者データ
-   */
-  convertMembersData(headers, rows) {
-    try {
-      // 担当者ごとのデータを構築
-      const all = {};
-      const names = [];
-      const contracts = [];
-      const amounts = [];
-      
-      rows.forEach(row => {
-        const memberName = row[headers.indexOf('name')];
-        const memberKey = row[headers.indexOf('key')];
-        
-        names.push(memberName);
-        contracts.push(parseInt(row[headers.indexOf('contract_value')], 10));
-        amounts.push(parseFloat(row[headers.indexOf('amount_value')]));
-        
-        // 担当者ごとのメトリクスを構築
-        const metrics = {
-          approach: {
-            value: parseInt(row[headers.indexOf('approach_value')], 10),
-            target: parseInt(row[headers.indexOf('approach_target')], 10),
-            change: parseFloat(row[headers.indexOf('approach_change')])
-          },
-          meeting: {
-            value: parseInt(row[headers.indexOf('meeting_value')], 10),
-            target: parseInt(row[headers.indexOf('meeting_target')], 10),
-            change: parseFloat(row[headers.indexOf('meeting_change')])
-          },
-          negotiation: {
-            value: parseInt(row[headers.indexOf('negotiation_value')], 10),
-            target: parseInt(row[headers.indexOf('negotiation_target')], 10),
-            change: parseFloat(row[headers.indexOf('negotiation_change')])
-          },
-          proposal: {
-            value: parseInt(row[headers.indexOf('proposal_value')], 10),
-            target: parseInt(row[headers.indexOf('proposal_target')], 10),
-            change: parseFloat(row[headers.indexOf('proposal_change')])
-          },
-          contract: {
-            value: parseInt(row[headers.indexOf('contract_value')], 10),
-            target: parseInt(row[headers.indexOf('contract_target')], 10),
-            change: parseFloat(row[headers.indexOf('contract_change')])
-          },
-          amount: {
-            value: parseFloat(row[headers.indexOf('amount_value')]),
-            target: parseFloat(row[headers.indexOf('amount_target')]),
-            change: parseFloat(row[headers.indexOf('amount_change')])
-          }
-        };
-        
-        // 効率性データを構築
-        const efficiency = {
-          approach_to_meeting: parseFloat(row[headers.indexOf('approach_to_meeting')]),
-          meeting_to_negotiation: parseFloat(row[headers.indexOf('meeting_to_negotiation')]),
-          negotiation_to_proposal: parseFloat(row[headers.indexOf('negotiation_to_proposal')]),
-          proposal_to_contract: parseFloat(row[headers.indexOf('proposal_to_contract')]),
-          avg_negotiation_period: parseFloat(row[headers.indexOf('avg_negotiation_period')])
-        };
-        
-        all[memberKey] = {
-          name: memberName,
-          metrics: metrics,
-          efficiency: efficiency,
-          amount: parseFloat(row[headers.indexOf('amount_value')]),
-          target: parseFloat(row[headers.indexOf('amount_target')]),
-          change: parseFloat(row[headers.indexOf('amount_change')])
-        };
-      });
-      
-      return {
-        all: all,
-        performance: {
-          names: names,
-          contracts: contracts,
-          amounts: amounts
-        }
-      };
-    } catch (error) {
-      console.error('担当者データの変換エラー:', error);
-      notificationUtils.showError('担当者データの変換に失敗しました');
-      throw error;
-    }
-  }
-
-  /**
-   * 汎用的なデータ変換
-   * @param {Array<string>} headers - ヘッダー行
-   * @param {Array<Array<string>>} rows - データ行
-   * @returns {Array<Object>} 変換されたデータ
-   */
-  convertGenericData(headers, rows) {
-    return rows.map(row => {
-      const item = {};
-      headers.forEach((header, index) => {
-        // 数値に変換できる場合は変換
-        const value = row[index];
-        if (!isNaN(value) && value !== '') {
-          if (value.includes('.')) {
-            item[header] = parseFloat(value);
-          } else {
-            item[header] = parseInt(value, 10);
-          }
-        } else {
-          item[header] = value;
-        }
-      });
-      return item;
-    });
-  }
-
-  /**
-   * サマリーデータを作成する
-   * @returns {Promise<Object>} サマリーデータ
-   */
-  async createSummaryData() {
-    try {
-      // 各エンドポイントからデータを取得
-      const weekly = await this.fetchData('weekly');
-      const monthly = await this.fetchData('monthly');
-      const members = await this.fetchData('members');
-      
-      // サマリーデータを構築
-      return {
-        weekly: weekly,
-        monthly: monthly,
-        members: members
-      };
-    } catch (error) {
-      console.error('サマリーデータの作成エラー:', error);
-      notificationUtils.showError('サマリーデータの作成に失敗しました');
-      throw error;
-    }
-  }
-
-  /**
-   * リクエストオプションを取得する
-   * @returns {Object} リクエストオプション
-   */
-  getRequestOptions() {
-    // API認証情報がある場合は認証ヘッダーを追加
-    if (this.config.auth.apiKey) {
-      return {
-        headers: {
-          'Authorization': `Bearer ${this.config.auth.apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      };
-    }
-    
-    return {
+    const url = `${this.baseUrl}${endpoint}`;
+    const defaultOptions = {
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'X-API-Key': this.apiKey
       }
     };
-  }
-
-  /**
-   * キャッシュを使用すべきかどうかを判定する
-   * @param {string} endpoint - エンドポイント名
-   * @returns {boolean} キャッシュを使用すべきかどうか
-   */
-  shouldUseCache(endpoint) {
-    // キャッシュが無効の場合は常にfalse
-    if (!this.config.cache.enabled) return false;
     
-    // キャッシュにデータがない場合はfalse
-    if (!this.cache[endpoint]) return false;
+    const fetchOptions = { ...defaultOptions, ...options };
     
-    // 最後のフェッチ時刻がない場合はfalse
-    if (!this.lastFetch[endpoint]) return false;
-    
-    // 現在時刻と最後のフェッチ時刻の差分を計算
-    const now = Date.now();
-    const lastFetchTime = this.lastFetch[endpoint];
-    const elapsed = now - lastFetchTime;
-    
-    // キャッシュ期限内ならtrue
-    return elapsed < this.config.cache.expiry;
-  }
-
-  /**
-   * キャッシュを更新する
-   * @param {string} endpoint - エンドポイント名
-   * @param {Object} data - キャッシュするデータ
-   */
-  updateCache(endpoint, data) {
-    this.cache[endpoint] = data;
-    this.lastFetch[endpoint] = Date.now();
-  }
-
-  /**
-   * デフォルトデータを取得する
-   * @param {string} endpoint - エンドポイント名
-   * @returns {Object} デフォルトデータ
-   */
-  getDefaultData(endpoint) {
-    // エンドポイントに応じたデフォルトデータを返す
-    switch (endpoint) {
-      case 'weekly':
-        return {
-          current: {
-            period: DISPLAY_CONFIG.defaultPeriod.weekly,
-            metrics: {
-              approach: { value: 0, target: 0, change: 0 },
-              meeting: { value: 0, target: 0, change: 0 },
-              negotiation: { value: 0, target: 0, change: 0 },
-              proposal: { value: 0, target: 0, change: 0 },
-              contract: { value: 0, target: 0, change: 0 },
-              amount: { value: 0, target: 0, change: 0 }
-            }
-          },
-          trend: {
-            periods: [],
-            approach: [],
-            meeting: [],
-            negotiation: [],
-            proposal: [],
-            contract: [],
-            amount: []
-          }
-        };
+    try {
+      const response = await fetch(url, fetchOptions);
       
-      case 'monthly':
-        return {
-          current: {
-            period: DISPLAY_CONFIG.defaultPeriod.monthly,
-            metrics: {
-              approach: { value: 0, target: 0, change: 0 },
-              meeting: { value: 0, target: 0, change: 0 },
-              negotiation: { value: 0, target: 0, change: 0 },
-              proposal: { value: 0, target: 0, change: 0 },
-              contract: { value: 0, target: 0, change: 0 },
-              amount: { value: 0, target: 0, change: 0 }
-            },
-            conversion: {
-              approach_to_meeting: { value: 0, from: 0, to: 0 },
-              meeting_to_negotiation: { value: 0, from: 0, to: 0 },
-              negotiation_to_proposal: { value: 0, from: 0, to: 0 },
-              proposal_to_contract: { value: 0, from: 0, to: 0 },
-              approach_to_contract: { value: 0, from: 0, to: 0 }
-            },
-            contract_distribution: {
-              categories: [],
-              amounts: []
-            }
-          },
-          trend: {
-            periods: [],
-            approach: [],
-            meeting: [],
-            negotiation: [],
-            proposal: [],
-            contract: [],
-            amount: []
-          },
-          conversion_trend: {
-            periods: [],
-            approach_to_contract: []
-          }
-        };
-      
-      case 'members':
-        return {
-          all: {},
-          performance: {
-            names: [],
-            contracts: [],
-            amounts: []
-          }
-        };
-      
-      case 'summary':
-        // 全データを含むデフォルト
-        return {
-          weekly: this.getDefaultData('weekly'),
-          monthly: this.getDefaultData('monthly'),
-          members: this.getDefaultData('members')
-        };
-      
-      default:
-        return {};
-    }
-  }
-
-  /**
-   * 定期的にデータを更新する
-   * @param {Function} callback - データ更新後のコールバック関数
-   */
-  startAutoRefresh(callback) {
-    // 既存のタイマーがあれば解除
-    if (this.refreshTimer) {
-      clearInterval(this.refreshTimer);
-    }
-    
-    // 定期的にデータを更新するタイマーを設定
-    this.refreshTimer = setInterval(async () => {
-      console.log('データを自動更新します');
-      try {
-        const data = await this.fetchData('summary');
-        if (callback && typeof callback === 'function') {
-          callback(data);
-        }
-      } catch (error) {
-        console.error('データの自動更新中にエラーが発生しました:', error);
-        notificationUtils.showError('データの自動更新に失敗しました');
+      if (!response.ok) {
+        throw new Error(`APIリクエストエラー: ${response.status} ${response.statusText}`);
       }
-    }, this.config.refreshInterval);
-    
-    return this.refreshTimer;
-  }
-
-  /**
-   * 自動更新を停止する
-   */
-  stopAutoRefresh() {
-    if (this.refreshTimer) {
-      clearInterval(this.refreshTimer);
-      this.refreshTimer = null;
+      
+      return await response.json();
+    } catch (error) {
+      console.error('APIリクエストエラー:', error);
+      
+      // オフライン時またはAPIエラー時はローカルデータにフォールバック
+      return this.fetchLocalData(endpoint);
     }
+  }
+  
+  /**
+   * ローカルデータを取得する
+   * @param {string} endpoint - データタイプを示すエンドポイント
+   * @returns {Promise} ローカルデータ
+   */
+  async fetchLocalData(endpoint) {
+    let dataFile = 'data/sample-data.json';
+    
+    if (endpoint.includes('weekly')) {
+      dataFile = 'data/weekly-data.json';
+    } else if (endpoint.includes('monthly')) {
+      dataFile = 'data/monthly-data.json';
+    } else if (endpoint.includes('members')) {
+      dataFile = 'data/members-data.json';
+    }
+    
+    try {
+      const response = await fetch(dataFile);
+      
+      if (!response.ok) {
+        throw new Error(`ローカルデータ取得エラー: ${response.status} ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('ローカルデータ取得エラー:', error);
+      return this.generateFallbackData(endpoint);
+    }
+  }
+  
+  /**
+   * フォールバックデータを生成する
+   * @param {string} endpoint - データタイプを示すエンドポイント
+   * @returns {Object} フォールバックデータ
+   */
+  generateFallbackData(endpoint) {
+    if (endpoint.includes('members')) {
+      return [
+        { id: 'member1', name: '山内' },
+        { id: 'member2', name: '内村' },
+        { id: 'member3', name: '谷川' },
+        { id: 'member4', name: '出口' }
+      ];
+    }
+    
+    if (endpoint.includes('weekly')) {
+      return {
+        weekly: [
+          {
+            period: '2025-03-3',
+            approach: 148,
+            meeting: 114,
+            negotiation: 76,
+            proposal: 37,
+            contract: 14,
+            amount: 37800000
+          }
+        ]
+      };
+    }
+    
+    if (endpoint.includes('monthly')) {
+      return {
+        monthly: [
+          {
+            period: '2025-03',
+            approach: 496,
+            meeting: 408,
+            negotiation: 254,
+            proposal: 128,
+            contract: 37,
+            amount: 96000000
+          }
+        ]
+      };
+    }
+    
+    return { data: [] };
+  }
+  
+  /**
+   * 週次データを取得する
+   * @param {string} period - 期間（YYYY-MM-W形式）
+   * @returns {Promise} 週次データ
+   */
+  fetchWeeklyData(period) {
+    return this.fetchApi(`/weekly/${period}`);
+  }
+  
+  /**
+   * 月次データを取得する
+   * @param {string} period - 期間（YYYY-MM形式）
+   * @returns {Promise} 月次データ
+   */
+  fetchMonthlyData(period) {
+    return this.fetchApi(`/monthly/${period}`);
+  }
+  
+  /**
+   * 担当者リストを取得する
+   * @returns {Promise} 担当者リスト
+   */
+  fetchMembers() {
+    return this.fetchApi('/members').then(data => data.members || data);
+  }
+  
+  /**
+   * すべてのデータを取得する
+   * @returns {Promise} すべてのデータ
+   */
+  fetchAllData() {
+    return this.fetchApi('/data/all');
+  }
+  
+  /**
+   * 日次データを保存する
+   * @param {Object} data - 保存するデータ
+   * @returns {Promise} 保存結果
+   */
+  saveDailyData(data) {
+    if (this.useLocalData) {
+      console.log('ローカルモード: 日次データの保存をシミュレート', data);
+      return Promise.resolve({ success: true, data });
+    }
+    
+    return this.fetchApi('/daily', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+  
+  /**
+   * 案件データを保存する
+   * @param {Object} project - 保存する案件データ
+   * @returns {Promise} 保存結果
+   */
+  saveProject(project) {
+    if (this.useLocalData) {
+      console.log('ローカルモード: 案件データの保存をシミュレート', project);
+      return Promise.resolve({ success: true, data: project });
+    }
+    
+    return this.fetchApi('/projects', {
+      method: 'POST',
+      body: JSON.stringify(project)
+    });
+  }
+  
+  /**
+   * 週次データを保存する
+   * @param {Object} data - 保存するデータ
+   * @returns {Promise} 保存結果
+   */
+  saveWeeklyData(data) {
+    if (this.useLocalData) {
+      console.log('ローカルモード: 週次データの保存をシミュレート', data);
+      return Promise.resolve({ success: true, data });
+    }
+    
+    return this.fetchApi(`/weekly/${data.period}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+  
+  /**
+   * Google Sheetsからデータを取得する
+   * @returns {Promise} スプレッドシートデータ
+   */
+  fetchFromGoogleSheets() {
+    if (!this.spreadsheetId || !this.apiKey) {
+      console.error('Google Sheets APIの設定が不完全です');
+      return Promise.reject(new Error('Google Sheets APIの設定が不完全です'));
+    }
+    
+    const sheetsApiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values:batchGet?ranges=週次データ!A1:Z1000&ranges=月次データ!A1:Z1000&ranges=担当者データ!A1:Z1000&key=${this.apiKey}`;
+    
+    return fetch(sheetsApiUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Google Sheets APIエラー: ${response.status} ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        return this.processGoogleSheetsData(data);
+      })
+      .catch(error => {
+        console.error('Google Sheetsデータ取得エラー:', error);
+        throw error;
+      });
+  }
+  
+  /**
+   * Google Sheetsのデータを処理する
+   * @param {Object} data - Google Sheets APIからのレスポンス
+   * @returns {Object} 処理済みデータ
+   */
+  processGoogleSheetsData(data) {
+    const valueRanges = data.valueRanges || [];
+    const result = {
+      weekly: [],
+      monthly: [],
+      members: []
+    };
+    
+    // 各シートのデータを処理
+    valueRanges.forEach((range, index) => {
+      const values = range.values || [];
+      
+      if (values.length < 2) {
+        return; // ヘッダーのみの場合はスキップ
+      }
+      
+      const headers = values[0];
+      
+      // データ行を処理
+      for (let i = 1; i < values.length; i++) {
+        const row = values[i];
+        const item = {};
+        
+        // 各列のデータをマッピング
+        for (let j = 0; j < headers.length; j++) {
+          if (j < row.length) {
+            item[this.normalizeHeader(headers[j])] = this.convertValue(headers[j], row[j]);
+          }
+        }
+        
+        // データタイプに応じて適切な配列に追加
+        if (index === 0) {
+          result.weekly.push(item);
+        } else if (index === 1) {
+          result.monthly.push(item);
+        } else if (index === 2) {
+          result.members.push(item);
+        }
+      }
+    });
+    
+    return result;
+  }
+  
+  /**
+   * ヘッダー名を正規化する
+   * @param {string} header - ヘッダー名
+   * @returns {string} 正規化されたヘッダー名
+   */
+  normalizeHeader(header) {
+    const headerMap = {
+      '期間': 'period',
+      'アプローチ数': 'approach',
+      '面談数': 'meeting',
+      '商談数': 'negotiation',
+      '提案数': 'proposal',
+      '契約数': 'contract',
+      '契約金額': 'amount',
+      'ID': 'id',
+      '担当者名': 'name',
+      '担当者ID': 'id',
+      '名前': 'name'
+    };
+    
+    return headerMap[header] || header.toLowerCase().replace(/\s+/g, '_');
+  }
+  
+  /**
+   * 値を適切な型に変換する
+   * @param {string} header - ヘッダー名
+   * @param {string} value - 変換する値
+   * @returns {any} 変換された値
+   */
+  convertValue(header, value) {
+    if (value === undefined || value === null || value === '') {
+      return header.includes('数') || header.includes('金額') ? 0 : '';
+    }
+    
+    if (header.includes('数') || header.includes('金額')) {
+      // 数値に変換（カンマや通貨記号を除去）
+      return parseInt(value.toString().replace(/[^\d.-]/g, ''), 10) || 0;
+    }
+    
+    return value;
   }
 }
 
-// APIサービスのインスタンスを作成
-const apiService = new ApiService(); 
+// グローバルインスタンスとしてエクスポート
+window.apiService = new ApiService(); 
