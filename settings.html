@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>営業チームKPIダッシュボード - 設定</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/settings.css">
+</head>
+<body>
+  <header class="dashboard-header">
+    <div class="logo">
+      <h1>営業チームKPIダッシュボード</h1>
+    </div>
+    <div class="header-actions">
+      <a href="index.html" class="btn btn-secondary">ダッシュボードに戻る</a>
+    </div>
+  </header>
+
+  <main class="settings-container">
+    <h2>設定</h2>
+    
+    <div class="settings-section">
+      <h3>データソース設定</h3>
+      
+      <div class="settings-option">
+        <label>
+          <input type="radio" name="data-source" value="local" checked> ローカルJSONファイル
+        </label>
+        <label>
+          <input type="radio" name="data-source" value="spreadsheet"> Googleスプレッドシート
+        </label>
+      </div>
+      
+      <div id="local-settings" class="data-source-settings">
+        <p>ローカルJSONファイルからデータを読み込みます。サンプルデータが使用されます。</p>
+      </div>
+      
+      <div id="spreadsheet-settings" class="data-source-settings" style="display: none;">
+        <div class="form-group">
+          <label for="api-key">Google API キー</label>
+          <input type="text" id="api-key" placeholder="Google Sheets APIキーを入力">
+          <p class="help-text">Google Cloud Consoleで取得したAPIキーを入力してください。</p>
+        </div>
+        
+        <div class="form-group">
+          <label for="spreadsheet-id">スプレッドシートID</label>
+          <input type="text" id="spreadsheet-id" placeholder="スプレッドシートIDを入力">
+          <p class="help-text">スプレッドシートのURLから取得できます。例: https://docs.google.com/spreadsheets/d/[スプレッドシートID]/edit</p>
+        </div>
+        
+        <div class="form-group">
+          <label for="weekly-sheet">週次データシート名</label>
+          <input type="text" id="weekly-sheet" value="Weekly" placeholder="シート名を入力">
+        </div>
+        
+        <div class="form-group">
+          <label for="monthly-sheet">月次データシート名</label>
+          <input type="text" id="monthly-sheet" value="Monthly" placeholder="シート名を入力">
+        </div>
+        
+        <div class="form-group">
+          <label for="members-sheet">担当者データシート名</label>
+          <input type="text" id="members-sheet" value="Members" placeholder="シート名を入力">
+        </div>
+        
+        <div class="form-group">
+          <button id="test-connection" class="btn btn-secondary">接続テスト</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h3>データ更新設定</h3>
+      
+      <div class="form-group">
+        <label for="refresh-interval">自動更新間隔（分）</label>
+        <input type="number" id="refresh-interval" min="1" max="60" value="5">
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="enable-cache" checked> データキャッシュを有効にする
+        </label>
+      </div>
+      
+      <div class="form-group">
+        <label for="cache-expiry">キャッシュ有効期間（分）</label>
+        <input type="number" id="cache-expiry" min="1" max="60" value="10">
+      </div>
+    </div>
+    
+    <div class="settings-section">
+      <h3>通知設定</h3>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="enable-goal-alert" checked> 目標達成通知を有効にする
+        </label>
+      </div>
+      
+      <div class="form-group">
+        <label for="goal-threshold">目標達成通知のしきい値（%）</label>
+        <input type="number" id="goal-threshold" min="1" max="100" value="90">
+        <p class="help-text">この値以上の達成率で通知が表示されます</p>
+      </div>
+      
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="enable-warning-alert" checked> 目標未達通知を有効にする
+        </label>
+      </div>
+      
+      <div class="form-group">
+        <label for="warning-threshold">目標未達通知のしきい値（%）</label>
+        <input type="number" id="warning-threshold" min="1" max="100" value="60">
+        <p class="help-text">この値未満の達成率で通知が表示されます</p>
+      </div>
+    </div>
+    
+    <div class="settings-actions">
+      <button id="save-settings" class="btn btn-primary">設定を保存</button>
+      <button id="reset-settings" class="btn btn-danger">初期設定に戻す</button>
+    </div>
+  </main>
+
+  <div id="notification-container"></div>
+
+  <!-- スクリプト -->
+  <script src="js/config.js"></script>
+  <script src="js/notification-utils.js"></script>
+  <script src="js/api-service.js"></script>
+  <script src="js/settings.js"></script>
+</body>
+</html> 

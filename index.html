@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>営業チーム KPIダッシュボード</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>営業チーム KPIダッシュボード</h1>
+      <div class="controls">
+        <div class="view-toggle">
+          <span>表示:</span>
+          <select id="viewSelector">
+            <option value="weekly" selected>週次</option>
+            <option value="monthly">月次</option>
+            <option value="members">担当者別</option>
+          </select>
+        </div>
+        
+        <div class="period-selector">
+          <span>期間:</span>
+          <select id="periodSelector">
+            <option>2025年3月第3週</option>
+            <option>2025年3月第2週</option>
+            <option>2025年3月第1週</option>
+            <option>2025年2月第4週</option>
+          </select>
+        </div>
+        
+        <div class="export-buttons">
+          <button class="export-btn" data-format="csv">CSV</button>
+          <button class="export-btn" data-format="excel">Excel</button>
+          <button class="export-btn" data-format="pdf">PDF</button>
+        </div>
+        
+        <a href="settings.html" class="settings-link" title="設定">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </a>
+      </div>
+    </header>
+    
+    <!-- 週次ダッシュボード -->
+    <div id="weekly-dashboard" class="tab-container active">
+      <!-- KPIサマリー -->
+      <div class="kpi-cards">
+        <div class="kpi-card">
+          <div class="kpi-title">アプローチ数</div>
+          <div class="kpi-value">148</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+12% vs 先週</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">面談数</div>
+          <div class="kpi-value">114</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+8.6% vs 先週</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">商談数</div>
+          <div class="kpi-value">76</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+5.5% vs 先週</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">提案数</div>
+          <div class="kpi-value">37</div>
+          <div class="kpi-change negative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>-2.6% vs 先週</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">契約数</div>
+          <div class="kpi-value">14</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+7.7% vs 先週</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">契約金額</div>
+          <div class="kpi-value">¥37.8M</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+5.0% vs 先週</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- チャート -->
+      <div class="chart-container">
+        <div class="chart-card">
+          <h3>週次推移（過去8週間）</h3>
+          <div style="height: 300px; position: relative; width: 100%;">
+            <canvas id="weeklyTrendChart"></canvas>
+          </div>
+        </div>
+        
+        <div class="chart-card">
+          <h3>活動比率</h3>
+          <div style="height: 300px; position: relative; width: 100%;">
+            <canvas id="weeklyActivityChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 目標達成状況 -->
+      <div class="goals-container">
+        <h3>週次目標達成状況</h3>
+        <div id="weeklyGoals">
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">アプローチ数</div>
+              <div class="goal-value">148 / 160 (92.5%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-good" style="width: 92.5%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">面談数</div>
+              <div class="goal-value">114 / 120 (95.0%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-good" style="width: 95%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">商談数</div>
+              <div class="goal-value">76 / 90 (84.4%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-warning" style="width: 84.4%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">提案数</div>
+              <div class="goal-value">37 / 50 (74.0%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-warning" style="width: 74%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">契約数</div>
+              <div class="goal-value">14 / 20 (70.0%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-warning" style="width: 70%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">契約金額</div>
+              <div class="goal-value">¥37.8M / ¥40.0M (94.5%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-good" style="width: 94.5%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 月次ダッシュボード -->
+    <div id="monthly-dashboard" class="tab-container">
+      <!-- KPIサマリー -->
+      <div class="kpi-cards">
+        <div class="kpi-card">
+          <div class="kpi-title">月間アプローチ数</div>
+          <div class="kpi-value">496</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+8.3% vs 先月</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">月間面談数</div>
+          <div class="kpi-value">408</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+6.5% vs 先月</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">月間商談数</div>
+          <div class="kpi-value">254</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+4.1% vs 先月</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">月間提案数</div>
+          <div class="kpi-value">128</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+3.2% vs 先月</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">月間契約数</div>
+          <div class="kpi-value">37</div>
+          <div class="kpi-change negative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>-2.6% vs 先月</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">月間契約金額</div>
+          <div class="kpi-value">¥96.0M</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+1.1% vs 先月</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- チャート -->
+      <div class="chart-container">
+        <div class="chart-card">
+          <h3>月次推移（過去12ヶ月）</h3>
+          <div style="height: 300px; position: relative; width: 100%;">
+            <canvas id="monthlyTrendChart"></canvas>
+          </div>
+        </div>
+        
+        <div class="chart-card">
+          <h3>コンバージョン率</h3>
+          <div style="height: 300px; position: relative; width: 100%;">
+            <canvas id="conversionRateChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 段階別ファネル分析 -->
+      <div class="goals-container">
+        <h3>営業フェーズ効率分析</h3>
+        <div id="salesFunnel">
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">アプローチ→面談 転換率</div>
+              <div class="goal-value">408 / 496 (82.3%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-good" style="width: 82.3%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">面談→商談 転換率</div>
+              <div class="goal-value">254 / 408 (62.3%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-warning" style="width: 62.3%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">商談→提案 転換率</div>
+              <div class="goal-value">128 / 254 (50.4%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-warning" style="width: 50.4%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">提案→契約 転換率</div>
+              <div class="goal-value">37 / 128 (28.9%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-danger" style="width: 28.9%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">全体成約率（アプローチ→契約）</div>
+              <div class="goal-value">37 / 496 (7.5%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-warning" style="width: 75%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 契約金額分布 -->
+      <div class="goals-container">
+        <h3>契約金額分布</h3>
+        <div style="height: 200px; position: relative; width: 100%;">
+          <canvas id="contractAmountChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 担当者別ダッシュボード -->
+    <div id="members-dashboard" class="tab-container">
+      <div class="member-header">
+        <h3>担当者別パフォーマンス</h3>
+        <div class="member-tabs">
+          <div class="member-tab active">全員</div>
+          <div class="member-tab">山内</div>
+          <div class="member-tab">内村</div>
+          <div class="member-tab">谷川</div>
+          <div class="member-tab">出口</div>
+        </div>
+      </div>
+      
+      <!-- 担当者別KPIカード -->
+      <div class="kpi-cards">
+        <div class="kpi-card">
+          <div class="kpi-title">山内</div>
+          <div class="kpi-value">¥32.5M</div>
+          <div class="kpi-change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>+6.2% vs 目標</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">内村</div>
+          <div class="kpi-value">¥25.8M</div>
+          <div class="kpi-change negative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>-3.7% vs 目標</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">谷川</div>
+          <div class="kpi-value">¥19.7M</div>
+          <div class="kpi-change negative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>-7.1% vs 目標</span>
+          </div>
+        </div>
+        
+        <div class="kpi-card">
+          <div class="kpi-title">出口</div>
+          <div class="kpi-value">¥18.0M</div>
+          <div class="kpi-change negative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>-10.0% vs 目標</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 担当者比較 -->
+      <div class="member-comparison">
+        <div class="chart-card">
+          <h3>担当者別契約実績</h3>
+          <div style="height: 300px; position: relative; width: 100%;">
+            <canvas id="memberPerformanceChart"></canvas>
+          </div>
+        </div>
+        
+        <div class="activity-metrics">
+          <h3>活動指標 vs 目標値</h3>
+          
+          <div class="metric-row">
+            <div class="metric-title">アプローチ数</div>
+            <div class="metric-value">
+              38 <span class="metric-target">(目標: 40)</span>
+            </div>
+          </div>
+          
+          <div class="metric-row">
+            <div class="metric-title">面談数</div>
+            <div class="metric-value">
+              29 <span class="metric-target">(目標: 30)</span>
+            </div>
+          </div>
+          
+          <div class="metric-row">
+            <div class="metric-title">商談数</div>
+            <div class="metric-value">
+              19 <span class="metric-target">(目標: 20)</span>
+            </div>
+          </div>
+          
+          <div class="metric-row">
+            <div class="metric-title">提案数</div>
+            <div class="metric-value">
+              12 <span class="metric-target">(目標: 15)</span>
+            </div>
+          </div>
+          
+          <div class="metric-row">
+            <div class="metric-title">契約数</div>
+            <div class="metric-value">
+              9 <span class="metric-target">(目標: 8)</span>
+            </div>
+          </div>
+          
+          <div class="metric-row">
+            <div class="metric-title">契約金額</div>
+            <div class="metric-value">
+              ¥32.5M <span class="metric-target">(目標: ¥30.0M)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 担当者別目標達成状況 -->
+      <div class="goals-container">
+        <h3>担当者別目標達成状況</h3>
+        <div id="memberGoals">
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">山内</div>
+              <div class="goal-value">¥32.5M / ¥30.0M (108.3%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-good" style="width: 100%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">内村</div>
+              <div class="goal-value">¥25.8M / ¥26.8M (96.3%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-good" style="width: 96.3%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">谷川</div>
+              <div class="goal-value">¥19.7M / ¥21.2M (92.9%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-good" style="width: 92.9%"></div>
+            </div>
+          </div>
+          
+          <div class="goal-item">
+            <div class="goal-header">
+              <div class="goal-title">出口</div>
+              <div class="goal-value">¥18.0M / ¥20.0M (90.0%)</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar progress-good" style="width: 90%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 効率性指標 -->
+      <div class="chart-card">
+        <h3>担当者別活動効率</h3>
+        <div style="height: 300px; position: relative; width: 100%;">
+          <canvas id="efficiencyChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="notification-container"></div>
+  
+  <!-- スクリプト -->
+  <script src="js/config.js"></script>
+  <script src="js/notification-utils.js"></script>
+  <script src="js/api-service.js"></script>
+  <script src="js/export-utils.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html> 

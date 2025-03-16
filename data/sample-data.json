@@ -1,0 +1,290 @@
+{
+  "weekly": {
+    "current": {
+      "period": "2025年3月第3週",
+      "metrics": {
+        "approach": {
+          "value": 148,
+          "target": 160,
+          "change": 12.0
+        },
+        "meeting": {
+          "value": 114,
+          "target": 120,
+          "change": 8.6
+        },
+        "negotiation": {
+          "value": 76,
+          "target": 90,
+          "change": 5.5
+        },
+        "proposal": {
+          "value": 37,
+          "target": 50,
+          "change": -2.6
+        },
+        "contract": {
+          "value": 14,
+          "target": 20,
+          "change": 7.7
+        },
+        "amount": {
+          "value": 37.8,
+          "target": 40.0,
+          "change": 5.0
+        }
+      }
+    },
+    "trend": {
+      "periods": ["1/3週", "1/4週", "2/1週", "2/2週", "2/3週", "2/4週", "3/1週", "3/2週"],
+      "approach": [118, 123, 127, 131, 135, 140, 143, 148],
+      "meeting": [92, 95, 99, 102, 105, 109, 112, 114],
+      "negotiation": [65, 68, 70, 72, 74, 75, 74, 76],
+      "proposal": [32, 34, 35, 36, 38, 39, 38, 37],
+      "contract": [9, 10, 9, 11, 12, 12, 13, 14],
+      "amount": [25.6, 27.8, 26.5, 30.2, 32.5, 33.8, 35.6, 37.8]
+    }
+  },
+  "monthly": {
+    "current": {
+      "period": "2025年3月",
+      "metrics": {
+        "approach": {
+          "value": 496,
+          "target": 520,
+          "change": 8.3
+        },
+        "meeting": {
+          "value": 408,
+          "target": 420,
+          "change": 6.5
+        },
+        "negotiation": {
+          "value": 254,
+          "target": 270,
+          "change": 4.1
+        },
+        "proposal": {
+          "value": 128,
+          "target": 135,
+          "change": 3.2
+        },
+        "contract": {
+          "value": 37,
+          "target": 38,
+          "change": -2.6
+        },
+        "amount": {
+          "value": 96.0,
+          "target": 100.0,
+          "change": 1.1
+        }
+      },
+      "conversion": {
+        "approach_to_meeting": {
+          "value": 82.3,
+          "from": 496,
+          "to": 408
+        },
+        "meeting_to_negotiation": {
+          "value": 62.3,
+          "from": 408,
+          "to": 254
+        },
+        "negotiation_to_proposal": {
+          "value": 50.4,
+          "from": 254,
+          "to": 128
+        },
+        "proposal_to_contract": {
+          "value": 28.9,
+          "from": 128,
+          "to": 37
+        },
+        "approach_to_contract": {
+          "value": 7.5,
+          "from": 496,
+          "to": 37
+        }
+      },
+      "contract_distribution": {
+        "categories": ["アプリ開発", "データ連携", "保守契約", "コンサルティング"],
+        "amounts": [37.8, 24.5, 19.2, 14.5]
+      }
+    },
+    "trend": {
+      "periods": ["2024/4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月", "2025/1月", "2月", "3月"],
+      "approach": [430, 445, 455, 440, 425, 460, 470, 480, 465, 450, 475, 496],
+      "meeting": [350, 360, 370, 355, 340, 375, 380, 390, 375, 365, 385, 408],
+      "negotiation": [210, 220, 225, 215, 205, 230, 235, 240, 230, 225, 240, 254],
+      "proposal": [105, 110, 115, 105, 100, 118, 120, 122, 118, 115, 122, 128],
+      "contract": [28, 31, 32, 29, 26, 33, 34, 36, 35, 32, 38, 37],
+      "amount": [76, 81, 85, 79, 75, 88, 89, 91, 87, 84, 95, 96]
+    },
+    "conversion_trend": {
+      "periods": ["1月", "2月", "3月"],
+      "approach_to_contract": [7.1, 8.0, 7.5]
+    }
+  },
+  "members": {
+    "all": {
+      "yamauchi": {
+        "amount": 32.5,
+        "target": 30.0,
+        "change": 6.2,
+        "metrics": {
+          "approach": {
+            "value": 38,
+            "target": 40
+          },
+          "meeting": {
+            "value": 29,
+            "target": 30
+          },
+          "negotiation": {
+            "value": 19,
+            "target": 20
+          },
+          "proposal": {
+            "value": 12,
+            "target": 15
+          },
+          "contract": {
+            "value": 9,
+            "target": 8
+          },
+          "amount": {
+            "value": 32.5,
+            "target": 30.0
+          }
+        },
+        "efficiency": {
+          "approach_to_meeting": 85,
+          "meeting_to_negotiation": 70,
+          "negotiation_to_proposal": 60,
+          "proposal_to_contract": 35,
+          "avg_negotiation_period": 75
+        }
+      },
+      "uchimura": {
+        "amount": 25.8,
+        "target": 26.8,
+        "change": -3.7,
+        "metrics": {
+          "approach": {
+            "value": 35,
+            "target": 38
+          },
+          "meeting": {
+            "value": 28,
+            "target": 29
+          },
+          "negotiation": {
+            "value": 18,
+            "target": 19
+          },
+          "proposal": {
+            "value": 10,
+            "target": 12
+          },
+          "contract": {
+            "value": 7,
+            "target": 7
+          },
+          "amount": {
+            "value": 25.8,
+            "target": 26.8
+          }
+        },
+        "efficiency": {
+          "approach_to_meeting": 80,
+          "meeting_to_negotiation": 65,
+          "negotiation_to_proposal": 55,
+          "proposal_to_contract": 32,
+          "avg_negotiation_period": 80
+        }
+      },
+      "tanigawa": {
+        "amount": 19.7,
+        "target": 21.2,
+        "change": -7.1,
+        "metrics": {
+          "approach": {
+            "value": 32,
+            "target": 35
+          },
+          "meeting": {
+            "value": 25,
+            "target": 27
+          },
+          "negotiation": {
+            "value": 16,
+            "target": 18
+          },
+          "proposal": {
+            "value": 8,
+            "target": 10
+          },
+          "contract": {
+            "value": 6,
+            "target": 6
+          },
+          "amount": {
+            "value": 19.7,
+            "target": 21.2
+          }
+        },
+        "efficiency": {
+          "approach_to_meeting": 78,
+          "meeting_to_negotiation": 62,
+          "negotiation_to_proposal": 52,
+          "proposal_to_contract": 30,
+          "avg_negotiation_period": 85
+        }
+      },
+      "deguchi": {
+        "amount": 18.0,
+        "target": 20.0,
+        "change": -10.0,
+        "metrics": {
+          "approach": {
+            "value": 30,
+            "target": 33
+          },
+          "meeting": {
+            "value": 22,
+            "target": 25
+          },
+          "negotiation": {
+            "value": 14,
+            "target": 16
+          },
+          "proposal": {
+            "value": 7,
+            "target": 9
+          },
+          "contract": {
+            "value": 5,
+            "target": 6
+          },
+          "amount": {
+            "value": 18.0,
+            "target": 20.0
+          }
+        },
+        "efficiency": {
+          "approach_to_meeting": 75,
+          "meeting_to_negotiation": 60,
+          "negotiation_to_proposal": 50,
+          "proposal_to_contract": 28,
+          "avg_negotiation_period": 90
+        }
+      }
+    },
+    "performance": {
+      "names": ["山内", "内村", "谷川", "出口"],
+      "contracts": [12, 9, 8, 8],
+      "amounts": [32.5, 25.8, 19.7, 18.0]
+    }
+  }
+} 
