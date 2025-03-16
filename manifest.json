@@ -2,7 +2,7 @@
   "name": "営業チームKPIダッシュボード",
   "short_name": "営業KPI",
   "description": "営業チームの活動状況や成果を可視化するKPIダッシュボード",
-  "start_url": "/index.html",
+  "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3498db",

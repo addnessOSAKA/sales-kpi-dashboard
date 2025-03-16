@@ -16,7 +16,7 @@ class ApiService {
       console.warn('APIの設定が不完全です。ローカルデータを使用します。');
     }
   }
-  
+
   /**
    * APIリクエストを送信する
    * @param {string} endpoint - APIエンドポイント
@@ -26,8 +26,8 @@ class ApiService {
   async fetchApi(endpoint, options = {}) {
     if (this.useLocalData) {
       return this.fetchLocalData(endpoint);
-    }
-    
+      }
+
     const url = `${this.baseUrl}${endpoint}`;
     const defaultOptions = {
       headers: {
@@ -53,7 +53,7 @@ class ApiService {
       return this.fetchLocalData(endpoint);
     }
   }
-  
+
   /**
    * ローカルデータを取得する
    * @param {string} endpoint - データタイプを示すエンドポイント
@@ -68,8 +68,8 @@ class ApiService {
       dataFile = 'data/monthly-data.json';
     } else if (endpoint.includes('members')) {
       dataFile = 'data/members-data.json';
-    }
-    
+      }
+      
     try {
       const response = await fetch(dataFile);
       
@@ -83,7 +83,7 @@ class ApiService {
       return this.generateFallbackData(endpoint);
     }
   }
-  
+
   /**
    * フォールバックデータを生成する
    * @param {string} endpoint - データタイプを示すエンドポイント
@@ -126,14 +126,14 @@ class ApiService {
             proposal: 128,
             contract: 37,
             amount: 96000000
-          }
+        }
         ]
       };
     }
     
     return { data: [] };
   }
-  
+
   /**
    * 週次データを取得する
    * @param {string} period - 期間（YYYY-MM-W形式）
@@ -167,7 +167,7 @@ class ApiService {
   fetchAllData() {
     return this.fetchApi('/data/all');
   }
-  
+
   /**
    * 日次データを保存する
    * @param {Object} data - 保存するデータ
@@ -184,7 +184,7 @@ class ApiService {
       body: JSON.stringify(data)
     });
   }
-  
+
   /**
    * 案件データを保存する
    * @param {Object} project - 保存する案件データ
@@ -218,7 +218,7 @@ class ApiService {
       body: JSON.stringify(data)
     });
   }
-  
+
   /**
    * Google Sheetsからデータを取得する
    * @returns {Promise} スプレッドシートデータ
@@ -227,8 +227,8 @@ class ApiService {
     if (!this.spreadsheetId || !this.apiKey) {
       console.error('Google Sheets APIの設定が不完全です');
       return Promise.reject(new Error('Google Sheets APIの設定が不完全です'));
-    }
-    
+  }
+
     const sheetsApiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${this.spreadsheetId}/values:batchGet?ranges=週次データ!A1:Z1000&ranges=月次データ!A1:Z1000&ranges=担当者データ!A1:Z1000&key=${this.apiKey}`;
     
     return fetch(sheetsApiUrl)
@@ -246,7 +246,7 @@ class ApiService {
         throw error;
       });
   }
-  
+
   /**
    * Google Sheetsのデータを処理する
    * @param {Object} data - Google Sheets APIからのレスポンス
@@ -318,7 +318,7 @@ class ApiService {
     
     return headerMap[header] || header.toLowerCase().replace(/\s+/g, '_');
   }
-  
+
   /**
    * 値を適切な型に変換する
    * @param {string} header - ヘッダー名
@@ -328,7 +328,7 @@ class ApiService {
   convertValue(header, value) {
     if (value === undefined || value === null || value === '') {
       return header.includes('数') || header.includes('金額') ? 0 : '';
-    }
+      }
     
     if (header.includes('数') || header.includes('金額')) {
       // 数値に変換（カンマや通貨記号を除去）

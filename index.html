@@ -86,7 +86,7 @@
     <div id="weekly-dashboard" class="tab-container active">
       <!-- KPIサマリー -->
       <div class="kpi-cards">
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="approach">
           <div class="kpi-title">アプローチ数</div>
           <div class="kpi-value">148</div>
           <div class="kpi-change positive">
@@ -97,7 +97,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="meeting">
           <div class="kpi-title">面談数</div>
           <div class="kpi-value">114</div>
           <div class="kpi-change positive">
@@ -108,7 +108,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="negotiation">
           <div class="kpi-title">商談数</div>
           <div class="kpi-value">76</div>
           <div class="kpi-change positive">
@@ -119,7 +119,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="proposal">
           <div class="kpi-title">提案数</div>
           <div class="kpi-value">37</div>
           <div class="kpi-change negative">
@@ -130,7 +130,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="contract">
           <div class="kpi-title">契約数</div>
           <div class="kpi-value">14</div>
           <div class="kpi-change positive">
@@ -141,9 +141,9 @@
           </div>
         </div>
         
-        <div class="kpi-card">
-          <div class="kpi-title">契約金額</div>
-          <div class="kpi-value">¥37.8M</div>
+        <div class="kpi-card" data-type="amount">
+          <div class="kpi-title">契約金額（万円）</div>
+          <div class="kpi-value">3,780</div>
           <div class="kpi-change positive">
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="18 15 12 9 6 15"></polyline>
@@ -241,7 +241,7 @@
     <div id="monthly-dashboard" class="tab-container">
       <!-- KPIサマリー -->
       <div class="kpi-cards">
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="approach">
           <div class="kpi-title">月間アプローチ数</div>
           <div class="kpi-value">496</div>
           <div class="kpi-change positive">
@@ -252,7 +252,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="meeting">
           <div class="kpi-title">月間面談数</div>
           <div class="kpi-value">408</div>
           <div class="kpi-change positive">
@@ -263,7 +263,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="negotiation">
           <div class="kpi-title">月間商談数</div>
           <div class="kpi-value">254</div>
           <div class="kpi-change positive">
@@ -274,7 +274,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="proposal">
           <div class="kpi-title">月間提案数</div>
           <div class="kpi-value">128</div>
           <div class="kpi-change positive">
@@ -285,7 +285,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="contract">
           <div class="kpi-title">月間契約数</div>
           <div class="kpi-value">37</div>
           <div class="kpi-change negative">
@@ -296,7 +296,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="amount">
           <div class="kpi-title">月間契約金額</div>
           <div class="kpi-value">¥96.0M</div>
           <div class="kpi-change positive">
@@ -405,7 +405,7 @@
       
       <!-- 担当者別KPIカード -->
       <div class="kpi-cards">
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="amount">
           <div class="kpi-title">山内</div>
           <div class="kpi-value">¥32.5M</div>
           <div class="kpi-change positive">
@@ -416,7 +416,7 @@
           </div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" data-type="amount">
           <div class="kpi-title">内村</div>
           <div class="kpi-value">¥25.8M</div>
           <div class="kpi-change negative">
@@ -908,7 +908,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
+        navigator.serviceWorker.register('service-worker.js')
           .then(registration => {
             console.log('Service Workerが登録されました:', registration.scope);
           })
