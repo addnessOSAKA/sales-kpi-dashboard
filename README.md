@@ -1,6 +1,6 @@
 # 営業チーム KPIダッシュボード
 
-GitHubリポジトリ: https://github.com/YOUR_USERNAME/営業管理KPI
+GitHubリポジトリ: https://github.com/addnessOSAKA/sales-kpi-dashboard
 
 # 営業チーム KPIダッシュボード
 
